@@ -16,7 +16,7 @@ function matrixTable(A: readonly (readonly number[])[], caption: string): HTMLEl
     tbody.append(h('tr', {}, ...row.map((x) => h('td', { text: String(x) }))))
   }
   table.append(tbody)
-  return table
+  return h('div', { class: 'table-scroll', tabindex: '0', role: 'region', 'aria-label': caption }, table)
 }
 
 export function mountExhibitLweSis(root: HTMLElement): void {
@@ -27,7 +27,8 @@ function lwePanel(): HTMLElement {
   const inst = LWE_EXAMPLE
   let s = [0, 0, 0]
 
-  const result = h('div', { class: 'compare-region', role: 'status' })
+  const result = h('div', { class: 'compare-region' })
+  const announce = h('p', { class: 'panel-status', role: 'status' })
   const fields = h('div', { class: 'field-row' })
   const inputs: HTMLInputElement[] = []
   for (let i = 0; i < inst.n; i++) {
@@ -93,14 +94,12 @@ function lwePanel(): HTMLElement {
     })
     table.append(tbody)
     result.replaceChildren(
-      table,
-      h(
-        'p',
-        {},
-        c.ok
-          ? badge('ok', `accepted: ‖e‖∞ = ${c.eNormInf} ≤ ${inst.B} — s solves this LWE instance`)
-          : badge('bad', `rejected: ‖e‖∞ = ${c.eNormInf} > ${inst.B} — b − A·s is not a small error vector`),
-      ),
+      h('div', { class: 'table-scroll', tabindex: '0', role: 'region', 'aria-label': 'LWE comparison table' }, table),
+    )
+    announce.replaceChildren(
+      c.ok
+        ? badge('ok', `accepted: ‖e‖∞ = ${c.eNormInf} ≤ ${inst.B} — s solves this LWE instance`)
+        : badge('bad', `rejected: ‖e‖∞ = ${c.eNormInf} > ${inst.B} — b − A·s is not a small error vector`),
     )
   }
 
@@ -116,12 +115,13 @@ function lwePanel(): HTMLElement {
     matrixTable(inst.A, 'A ∈ Z₄₇^{5×3}'),
     matrixTable([inst.b], 'bᵀ (the noisy result)'),
     fields,
-    solRow,
     result,
+    announce,
+    h('details', {}, h('summary', { text: 'Stuck? Reveal the known solutions' }), solRow),
     h(
       'details',
       {},
-      h('summary', { text: 'Where is the lattice in LWE?' }),
+      h('summary', { text: 'Where is the lattice in LWE? (exact formulation)' }),
       h(
         'p',
         {},
@@ -137,7 +137,8 @@ function sisPanel(): HTMLElement {
   const inst = SIS_EXAMPLE
   let z = [0, 0, 0, 0, 0]
 
-  const result = h('div', { class: 'compare-region', role: 'status' })
+  const result = h('div', { class: 'compare-region' })
+  const announce = h('p', { class: 'panel-status', role: 'status' })
   const fields = h('div', { class: 'field-row' })
   const inputs: HTMLInputElement[] = []
   for (let i = 0; i < inst.m; i++) {
@@ -185,7 +186,7 @@ function sisPanel(): HTMLElement {
     })
     table.append(tbody)
     result.replaceChildren(
-      table,
+      h('div', { class: 'table-scroll', tabindex: '0', role: 'region', 'aria-label': 'SIS result table' }, table),
       h(
         'ul',
         { class: 'check-list', role: 'list' },
@@ -197,8 +198,8 @@ function sisPanel(): HTMLElement {
           c.isShort ? badge('ok', `short: ‖z‖∞ = ${c.zNormInf} ≤ ${inst.B}`) : badge('bad', `too long: ‖z‖∞ = ${c.zNormInf} > ${inst.B}`),
         ),
       ),
-      h('p', {}, c.ok ? badge('ok', 'valid SIS solution') : badge('bad', 'not a SIS solution')),
     )
+    announce.replaceChildren(c.ok ? badge('ok', 'valid SIS solution') : badge('bad', 'not a SIS solution'))
   }
 
   const panel = h(
@@ -212,12 +213,13 @@ function sisPanel(): HTMLElement {
     ),
     matrixTable(inst.A, 'A ∈ Z₁₃^{3×5}'),
     fields,
-    solRow,
     result,
+    announce,
+    h('details', {}, h('summary', { text: 'Stuck? Reveal the known solutions' }), solRow),
     h(
       'details',
       {},
-      h('summary', { text: 'Where is the lattice in SIS — and why does a hash function care?' }),
+      h('summary', { text: 'Where is the lattice in SIS — and why does a hash function care? (exact formulation)' }),
       h(
         'p',
         {},

@@ -4,9 +4,9 @@
 
 ## What It Is
 
-A lattice is the set of integer combinations of a few basis vectors. The same lattice has many bases, and the entire security story of lattice-based cryptography lives in one asymmetry: a **good basis** (short, nearly orthogonal vectors) makes the lattice's short and near vectors easy to find, while a **bad basis** of the *identical* lattice hides them. This demo walks that idea from a draggable 2D picture (SVP, CVP, Babai rounding) through the reduction algorithms that repair bases (Gauss, LLL with the Lovász condition), to the problems cryptography actually ships — **LWE** and **SIS** over F_q — and finally to **toy-Kyber (ML-KEM)** and **toy-Dilithium (ML-DSA)**, run end to end at the teaching notes' exact toy parameters (q=137 and q=16417, n=4).
+A lattice is the set of integer combinations of a few basis vectors. The same lattice has many bases, and the guiding intuition of lattice-based cryptography is one asymmetry: a **good basis** (short, nearly orthogonal vectors) makes the lattice's short and near vectors easy to find, while a **bad basis** of the *identical* lattice hides them. Hold the intuition loosely: the standardized schemes never hand honest users a secret good basis — their secrets are *short vectors* inside noisy modular equations, and their security is connected to high-dimensional lattice problems through the MLWE/MSIS formulations and security reductions, not a literal basis trapdoor. This demo walks that idea from a draggable 2D picture (SVP, CVP, Babai rounding) through the reduction algorithms that repair bases (Gauss, LLL with the Lovász condition), to the problems cryptography actually ships — **LWE** and **SIS** over F_q — and finally to **toy-Kyber (ML-KEM)** and **toy-Dilithium (ML-DSA)**, run end to end at the teaching notes' exact toy parameters (q=137 and q=16417, n=4).
 
-Everything is computed live in the browser: exact integer lattice arithmetic, an instrumented Gauss and LLL reduction, real F_q and R_q = Z_q[x]/(x⁴+1) algebra, SHA-256 via WebCrypto, and real Fiat–Shamir-with-aborts rejection sampling. Every worked example from the notes and slides runs as a known-answer test in CI.
+Everything is computed live in the browser: exact integer lattice arithmetic, an instrumented Gauss and LLL reduction, real F_q and R_q = Z_q[x]/(x⁴+1) algebra, SHA-256 via WebCrypto, real Fiat–Shamir-with-aborts rejection sampling, and a KEM decapsulation with FIPS 203-style implicit rejection (a fallback key, never a visible failure). Fresh-randomness experiments run from a visible seed so any interesting case can be reproduced and shared. Every worked example from the notes and slides runs as a regression test in CI.
 
 **Not production crypto** — a teaching demo. n = 4 offers no security (16 possible Kyber plaintexts), SHA-256 stands in for SHAKE, and 2D lattice problems are easy by design; the demo shows *why* the hardness assumptions have the shape they have, not that they hold.
 
@@ -16,7 +16,7 @@ Everything is computed live in the browser: exact integer lattice arithmetic, an
 2. **Good basis, bad basis** — the Shortest Vector Problem: toggle between the two bases of Examples 2.7/2.8 and watch the highlighted shortest vector (found by brute force, never asserted) stay put while its visibility collapses.
 3. **Gauss and LLL, step by step** — a real instrumented reduction: Gauss's algorithm on Examples 9.11 and 9.12 (watch ‖v‖² fall from 1.3×10¹⁰ to 6×10⁵), and full LLL on the 4D basis of Example 9.21 — every size-reduction, every Lovász check, every swap, replayed from the actual trace.
 4. **LWE and SIS over F_q** — the notes' Example 4.3 (LWE: m=5, n=3, q=47) and Example 3.2 (SIS: n=3, m=5, q=13) verbatim. Type candidate solutions; both sides of every equation are computed and compared element by element, with independent accept/reject conditions reported independently.
-5. **toy-Kyber and toy-Dilithium** — the slides' worked examples reproduced digit for digit, plus fresh-randomness modes: encrypt/decrypt with a live noise-budget meter (drag the error size past q/4 and watch decryption break), a Fujisaki–Okamoto KEM with a live re-encryption check, and Dilithium signing with visible rejection sampling and three tamper buttons the real verifier refuses.
+5. **toy-Kyber and toy-Dilithium** — the slides' worked examples reproduced digit for digit, plus seeded fresh modes: encrypt/decrypt with a live noise-budget meter (drag the error size past q/4 and watch decryption break), a Fujisaki–Okamoto KEM whose decapsulation models FIPS 203 implicit rejection (tampered ciphertexts silently yield the fallback key), and Dilithium signing with visible rejection sampling and three tamper buttons the real verifier refuses. Each panel opens with a toy-vs-standard table listing every deliberate deviation from FIPS 203/204.
 
 ## When to Use It
 
@@ -34,6 +34,7 @@ Drag basis vectors and the CVP target, step the reductions, type LWE/SIS candida
 ## What Can Go Wrong
 
 - **Kyber decryption failure**: the error polynomial eᵀr + e₂ − sᵀe₁ must stay under q/4 in every coefficient; the demo's noise slider lets you cross the ceiling and watch bits flip. Real ML-KEM chooses parameters so this probability is cryptographically negligible.
+- **Explicit failure signals**: a KEM that visibly rejects malformed ciphertexts hands attackers an oracle. FIPS 203 decapsulation therefore *implicitly* rejects — it outputs a pseudorandom fallback key — and the toy KEM models exactly that behavior.
 - **Dilithium leakage without aborts**: publishing z = y + c·s₁ when ‖z‖∞ is too large leaks s₁'s distribution; the rejection-sampling loop (visible in Exhibit 5) is the fix, not an optimization.
 - **Trusting a basis**: Exhibit 1 shows the same lattice looking trivial or hopeless depending on the basis — "given a basis" is doing enormous work in every lattice hardness statement.
 - **Toy-size intuition**: everything here is brute-forceable; hardness only emerges in dimensions in the hundreds.
@@ -49,7 +50,7 @@ Drag basis vectors and the CVP target, step the reductions, type LWE/SIS candida
 ```bash
 npm ci
 npm run dev        # dev server
-npm test           # 54 unit tests incl. 32 spec KATs
+npm test           # 56 unit tests incl. 32 worked-example KATs
 npm run build      # typecheck + production build
 npm run test:a11y  # axe-core WCAG 2.1 AA gate, both themes (port 4390)
 ```
@@ -64,9 +65,9 @@ npm run test:a11y  # axe-core WCAG 2.1 AA gate, both themes (port 4390)
 
 ## Build & Verify
 
-- **54 Vitest unit tests**, colocated in `src/**/*.test.ts`, all passing — round-trips, fail-closed rejections, property checks (Gauss output attains λ₁ against brute force; LLL output verified LLL-reduced), and exhaustive solution counts for the LWE/SIS instances.
-- **32 spec KATs** replaying worked examples verbatim from eprint 2026/1098 (2D bases, CVP rounding, Gauss 9.11/9.12, Gram–Schmidt 9.6, LLL 9.21, SIS 3.2, LWE 4.3) and the cryptography101.ca slides (R_q arithmetic, MLWE q=541, toy-Kyber pp. 50–51, toy-Dilithium pp. 106–109).
-- **Accessibility gate**: `@axe-core/playwright` scans the production build in **both themes** with every exhibit driven into its post-interaction states (including failure and tamper states); zero WCAG 2.1 A/AA violations, enforced in CI before deploy.
+- **56 Vitest unit tests**, colocated in `src/**/*.test.ts`, all passing — round-trips, fail-closed rejections, implicit-rejection behavior (fallback key determinism and separation from the real key), property checks (Gauss output attains λ₁ against brute force; LLL output verified LLL-reduced), and exhaustive solution counts for the LWE/SIS instances.
+- **32 worked-example KATs** (regression tests against the teaching sources, not official FIPS/ACVP vectors) replaying examples verbatim from eprint 2026/1098 v1.1 (2D bases, CVP rounding, Gauss 9.11/9.12, Gram–Schmidt 9.6, LLL 9.21, SIS 3.2, LWE 4.3) and the cryptography101.ca slides, August 2024 (R_q arithmetic, MLWE q=541, toy-Kyber pp. 50–51, toy-Dilithium pp. 106–109).
+- **Accessibility gate**: `@axe-core/playwright` scans the production build in **both themes** with every exhibit driven into its post-interaction states (including failure, tamper, and implicit-rejection states); zero WCAG 2.1 A/AA violations, plus a no-horizontal-overflow check at 320/360/390/768 px and a 200% zoom equivalent — all enforced in CI before deploy. Axe coverage is automated; announcement quality is additionally addressed by giving each panel a single concise live region instead of announcing whole tables.
 - **Deploy**: GitHub Actions → Pages; unit tests, typecheck, build, and the a11y gate all block a broken deploy.
 
 ---

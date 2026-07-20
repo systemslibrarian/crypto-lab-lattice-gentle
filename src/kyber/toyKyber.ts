@@ -4,11 +4,18 @@
  * q = 137, n = 4, k = 2, η = 2. Every operation is the real algebra in
  * R_137 = Z_137[x]/(x⁴+1); nothing is simulated.
  *
+ * The KEM wrapper implements IMPLICIT REJECTION as in FIPS 203 decapsulation:
+ * when the re-encryption check fails, decapsulation still outputs a key — a
+ * pseudorandom fallback derived from the secret value z and the ciphertext —
+ * so nothing observable distinguishes a rejected ciphertext from a valid one.
+ * The internal match bit is exposed to the UI only as a labelled teaching view.
+ *
  * The exported KAT constants are the worked example of slides V2 pp. 50–51
  * verbatim; the unit tests replay it end to end.
  *
- * NOT production crypto: n = 4 means 16 possible plaintexts — a toy for
- * teaching the mechanism. Real ML-KEM uses q = 3329, n = 256, k ∈ {2,3,4}.
+ * NOT ML-KEM: beyond the toy sizes, real ML-KEM (FIPS 203) specifies SHAKE/SHA3
+ * hashing, ciphertext compression, normative encodings, and CBD sampling that
+ * this teaching core deliberately omits. n = 4 means 16 possible plaintexts.
  */
 import {
   matVec,
@@ -23,6 +30,7 @@ import {
   type RingParams,
 } from '../ring/rq'
 import { mods, mod } from '../fq/zq'
+import { cryptoRand, type Rand } from '../random'
 
 export const KYBER_PARAMS = { q: 137, n: 4, k: 2, eta: 2 } as const
 const P: RingParams = KYBER_PARAMS
@@ -34,6 +42,8 @@ export interface KyberPublicKey {
 }
 export interface KyberSecretKey {
   s: PolyVec
+  /** implicit-rejection secret: the fallback key is derived from z (FIPS 203 shape) */
+  z: number[]
 }
 export interface KyberCiphertext {
   u: PolyVec
@@ -54,9 +64,15 @@ export interface KyberRandomness {
   e2: Poly
 }
 
-export function keygen(A: PolyVec[], s: PolyVec, e: PolyVec): { pk: KyberPublicKey; sk: KyberSecretKey } {
+export function keygen(
+  A: PolyVec[],
+  s: PolyVec,
+  e: PolyVec,
+  rand: Rand = cryptoRand,
+): { pk: KyberPublicKey; sk: KyberSecretKey } {
   const t = vecAdd(matVec(A, s, P), e, P)
-  return { pk: { A, t }, sk: { s } }
+  const z = Array.from({ length: 16 }, () => rand(256))
+  return { pk: { A, t }, sk: { s, z } }
 }
 
 export function encrypt(pk: KyberPublicKey, m: Bits, rnd: KyberRandomness): KyberCiphertext {
@@ -85,47 +101,45 @@ export function noiseBudget(
 }
 
 // ---------------------------------------------------------------------------
-// Random sampling (real randomness via crypto.getRandomValues; a deterministic
-// variant driven by hash output feeds the FO re-encryption check)
+// Sampling — the randomness source is injectable so the UI can run seeded,
+// reproducible experiments (see src/random.ts); tests and defaults use
+// crypto.getRandomValues.
 // ---------------------------------------------------------------------------
 
-/** Uniform integer in [0, q) by rejection from crypto.getRandomValues. */
-function uniformMod(q: number): number {
-  const buf = new Uint16Array(1)
-  const limit = Math.floor(65536 / q) * q
-  for (;;) {
-    crypto.getRandomValues(buf)
-    if (buf[0] < limit) return buf[0] % q
-  }
-}
+const randomSmallPoly = (eta: number, rand: Rand): number[] =>
+  Array.from({ length: P.n }, () => rand(2 * eta + 1) - eta)
 
-const randomSmallPoly = (eta: number): number[] =>
-  Array.from({ length: P.n }, () => uniformMod(2 * eta + 1) - eta)
+export const randomUniformPoly = (rand: Rand = cryptoRand): number[] =>
+  Array.from({ length: P.n }, () => rand(P.q))
 
-export const randomUniformPoly = (): number[] => Array.from({ length: P.n }, () => uniformMod(P.q))
-
-export function randomKeyMaterial(): { A: PolyVec[]; s: PolyVec; e: PolyVec } {
+export function randomKeyMaterial(rand: Rand = cryptoRand): { A: PolyVec[]; s: PolyVec; e: PolyVec } {
   const { k, eta } = KYBER_PARAMS
-  const A = Array.from({ length: k }, () => Array.from({ length: k }, randomUniformPoly))
-  const s = Array.from({ length: k }, () => randomSmallPoly(eta))
-  const e = Array.from({ length: k }, () => randomSmallPoly(eta))
+  const A = Array.from({ length: k }, () => Array.from({ length: k }, () => randomUniformPoly(rand)))
+  const s = Array.from({ length: k }, () => randomSmallPoly(eta, rand))
+  const e = Array.from({ length: k }, () => randomSmallPoly(eta, rand))
   return { A, s, e }
 }
 
-export function randomEncRandomness(eta: number = KYBER_PARAMS.eta): KyberRandomness {
+/**
+ * Encryption randomness. `eta` scales only the error terms e1, e2 (the demo's
+ * break-it slider); r keeps the scheme's own η so the comparison is honest:
+ * what varies is the injected error size, not the whole algorithm.
+ */
+export function randomEncRandomness(eta: number = KYBER_PARAMS.eta, rand: Rand = cryptoRand): KyberRandomness {
   const { k } = KYBER_PARAMS
   return {
-    r: Array.from({ length: k }, () => randomSmallPoly(KYBER_PARAMS.eta)),
-    e1: Array.from({ length: k }, () => randomSmallPoly(eta)),
-    e2: randomSmallPoly(eta),
+    r: Array.from({ length: k }, () => randomSmallPoly(KYBER_PARAMS.eta, rand)),
+    e1: Array.from({ length: k }, () => randomSmallPoly(eta, rand)),
+    e2: randomSmallPoly(eta, rand),
   }
 }
 
 // ---------------------------------------------------------------------------
-// KEM wrapper (FO-style): encapsulation encrypts a random m with randomness
-// derived from H(m ‖ pk); decapsulation decrypts, *re-encrypts and compares
-// ciphertexts byte for byte* before accepting — the FO plaintext-awareness
-// check, live. Hashing is real SHA-256 via WebCrypto.
+// KEM wrapper (FO-style with implicit rejection): encapsulation encrypts a
+// random m with randomness derived from H(m ‖ pk); decapsulation decrypts,
+// re-encrypts and compares ciphertexts, then outputs either the real key or
+// the z-derived fallback — same length, no observable difference on the wire.
+// Hashing is real SHA-256 via WebCrypto.
 // ---------------------------------------------------------------------------
 
 async function sha256(data: Uint8Array): Promise<Uint8Array> {
@@ -165,25 +179,33 @@ const ctBytes = (c: KyberCiphertext): number[] => [...c.u.flat(), ...c.v]
 export const toHex = (bytes: Uint8Array): string =>
   [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
 
+const deriveKey = async (m: Bits, c: KyberCiphertext): Promise<string> =>
+  toHex(await sha256(new Uint8Array([...m, 254, ...ctBytes(c).map((x) => x % 256)])))
+
+const deriveFallbackKey = async (z: number[], c: KyberCiphertext): Promise<string> =>
+  toHex(await sha256(new Uint8Array([...z, 253, ...ctBytes(c).map((x) => x % 256)])))
+
 export interface EncapsResult {
   m: number[]
   c: KyberCiphertext
   K: string
 }
 
-export async function encaps(pk: KyberPublicKey): Promise<EncapsResult> {
-  const m = Array.from({ length: P.n }, () => uniformMod(2))
+export async function encaps(pk: KyberPublicKey, rand: Rand = cryptoRand): Promise<EncapsResult> {
+  const m = Array.from({ length: P.n }, () => rand(2))
   const rnd = await deriveRandomness(m, pk)
   const c = encrypt(pk, m, rnd)
-  const K = toHex(await sha256(new Uint8Array([...m, 254, ...ctBytes(c).map((x) => x % 256)])))
-  return { m, c, K }
+  return { m, c, K: await deriveKey(m, c) }
 }
 
 export interface DecapsResult {
   mPrime: number[]
   reEncrypted: KyberCiphertext
+  /** INTERNAL teaching view — on the wire nothing reveals this bit */
   match: boolean
-  K: string | null
+  /** always a same-length key: the real one, or the z-derived fallback */
+  K: string
+  implicitRejection: boolean
 }
 
 export async function decaps(sk: KyberSecretKey, pk: KyberPublicKey, c: KyberCiphertext): Promise<DecapsResult> {
@@ -191,10 +213,8 @@ export async function decaps(sk: KyberSecretKey, pk: KyberPublicKey, c: KyberCip
   const rnd = await deriveRandomness(mPrime, pk)
   const reEncrypted = encrypt(pk, mPrime, rnd)
   const match = JSON.stringify(ctBytes(reEncrypted)) === JSON.stringify(ctBytes(c))
-  const K = match
-    ? toHex(await sha256(new Uint8Array([...mPrime, 254, ...ctBytes(c).map((x) => x % 256)])))
-    : null // real ML-KEM returns an implicit-rejection key; the toy fails closed
-  return { mPrime, reEncrypted, match, K }
+  const K = match ? await deriveKey(mPrime, c) : await deriveFallbackKey(sk.z, c)
+  return { mPrime, reEncrypted, match, K, implicitRejection: !match }
 }
 
 // ---------------------------------------------------------------------------

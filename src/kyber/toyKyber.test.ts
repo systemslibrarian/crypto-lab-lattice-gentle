@@ -82,22 +82,48 @@ describe('round-trips with fresh randomness', () => {
   })
 })
 
-describe('KEM wrapper (FO-style re-encryption check)', () => {
-  it('encaps/decaps agree on the shared secret', async () => {
+describe('KEM wrapper (FO with implicit rejection, FIPS 203 shape)', () => {
+  it('encaps/decaps agree on the shared secret for a valid ciphertext', async () => {
     const { A, s, e } = randomKeyMaterial()
     const { pk, sk } = keygen(A, s, e)
     const { c, K } = await encaps(pk)
     const d = await decaps(sk, pk, c)
     expect(d.match).toBe(true)
+    expect(d.implicitRejection).toBe(false)
     expect(d.K).toBe(K)
   })
-  it('fail-closed: a tampered ciphertext fails the re-encryption check', async () => {
+  it('implicit rejection: a tampered ciphertext still yields a key — the fallback', async () => {
     const { A, s, e } = randomKeyMaterial()
     const { pk, sk } = keygen(A, s, e)
-    const { c } = await encaps(pk)
+    const { c, K } = await encaps(pk)
     const tampered = { u: c.u, v: c.v.map((x, i) => (i === 0 ? (x + 40) % KYBER_PARAMS.q : x)) }
     const d = await decaps(sk, pk, tampered)
     expect(d.match).toBe(false)
-    expect(d.K).toBeNull()
+    expect(d.implicitRejection).toBe(true)
+    // a key is always released, same length as a real one…
+    expect(d.K).toHaveLength(K.length)
+    // …but separated from the sender's key
+    expect(d.K).not.toBe(K)
+  })
+  it('the fallback key is deterministic in (z, ciphertext)', async () => {
+    const { A, s, e } = randomKeyMaterial()
+    const { pk, sk } = keygen(A, s, e)
+    const { c } = await encaps(pk)
+    const tampered = { u: c.u, v: c.v.map((x, i) => (i === 1 ? (x + 17) % KYBER_PARAMS.q : x)) }
+    const d1 = await decaps(sk, pk, tampered)
+    const d2 = await decaps(sk, pk, tampered)
+    expect(d1.K).toBe(d2.K)
+    // a different secret z gives a different fallback for the same ciphertext
+    const other = keygen(A, s, e) // fresh z
+    const d3 = await decaps(other.sk, pk, tampered)
+    expect(d3.K).not.toBe(d1.K)
+  })
+  it('seeded randomness is reproducible (teaching mode), crypto randomness is the default', async () => {
+    const { seededRand } = await import('../random')
+    const a = randomKeyMaterial(seededRand(42))
+    const b = randomKeyMaterial(seededRand(42))
+    expect(a).toEqual(b)
+    const c = randomKeyMaterial(seededRand(43))
+    expect(c).not.toEqual(a)
   })
 })

@@ -23,6 +23,7 @@ import {
   type RingParams,
 } from '../ring/rq'
 import { mod } from '../fq/zq'
+import { cryptoRand, type Rand } from '../random'
 
 export const DILITHIUM_PARAMS = {
   q: 16417,
@@ -126,17 +127,9 @@ export interface SignResult {
   attempts: AttemptTrace[]
 }
 
-function uniformMod(m: number): number {
-  const buf = new Uint16Array(1)
-  const limit = Math.floor(65536 / m) * m
-  for (;;) {
-    crypto.getRandomValues(buf)
-    if (buf[0] < limit) return buf[0] % m
-  }
-}
-
 /** y ∈ S̃γ1: coefficients uniform in (−γ1, γ1]. */
-const randomMaskPoly = (): number[] => Array.from({ length: n }, () => uniformMod(2 * gamma1) - gamma1 + 1)
+const randomMaskPoly = (rand: Rand): number[] =>
+  Array.from({ length: n }, () => rand(2 * gamma1) - gamma1 + 1)
 
 /**
  * One signing attempt with the given mask y and challenge c. Split out so the
@@ -168,10 +161,15 @@ export function signAttempt(keys: DilithiumKeys, y: PolyVec, c: Poly): AttemptTr
   }
 }
 
-export async function sign(keys: DilithiumKeys, message: string, maxAttempts = 1000): Promise<SignResult> {
+export async function sign(
+  keys: DilithiumKeys,
+  message: string,
+  maxAttempts = 1000,
+  rand: Rand = cryptoRand,
+): Promise<SignResult> {
   const attempts: AttemptTrace[] = []
   for (let i = 0; i < maxAttempts; i++) {
-    const y = Array.from({ length: l }, randomMaskPoly)
+    const y = Array.from({ length: l }, () => randomMaskPoly(rand))
     const w1 = vecHighBits(matVec(keys.A, y.map((f) => f.map((x) => mod(x, q))), P))
     const seed = await challengeSeed(w1, message)
     const c = sampleInBall(seed)
@@ -223,10 +221,10 @@ export function azMinusCt(pk: { A: PolyVec[]; t: PolyVec }, sig: Signature): num
   return vecSub(Az, ct, P)
 }
 
-export function randomKeyMaterial(): DilithiumKeys {
-  const smallPoly = (): number[] => Array.from({ length: n }, () => uniformMod(2 * eta + 1) - eta)
+export function randomKeyMaterial(rand: Rand = cryptoRand): DilithiumKeys {
+  const smallPoly = (): number[] => Array.from({ length: n }, () => rand(2 * eta + 1) - eta)
   const A = Array.from({ length: k }, () =>
-    Array.from({ length: l }, () => Array.from({ length: n }, () => uniformMod(q))),
+    Array.from({ length: l }, () => Array.from({ length: n }, () => rand(q))),
   )
   const s1 = Array.from({ length: l }, smallPoly)
   const s2 = Array.from({ length: k }, smallPoly)

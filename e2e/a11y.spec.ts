@@ -7,7 +7,7 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
  * Drive every exhibit into its post-interaction states before scanning —
  * axe only checks what is in the DOM, so an unscanned state is an ungated
  * state. This walks all five exhibits: presets, steppers, accept AND reject
- * paths, tampering, and the noise-overflow failure state.
+ * paths, tampering, implicit rejection, and the noise-overflow failure state.
  */
 async function driveDemos(page: Page): Promise<void> {
   await page.addStyleTag({ content: `*,*::before,*::after{animation:none!important;transition:none!important}` })
@@ -23,13 +23,13 @@ async function driveDemos(page: Page): Promise<void> {
   await ex1.getByRole('button').first().click()
   await page.locator('#ex1-b1x').fill('4')
   await page.locator('#ex1-b1x').dispatchEvent('change') // "different lattice" warning state
-  await page.waitForTimeout(100)
+  await expect(ex1.getByText('different lattice', { exact: false }).first()).toBeVisible()
 
-  // Exhibit 2 — both bases of the toggle
+  // Exhibit 2 — prediction prompt, then both bases of the toggle
   const ex2 = page.locator('#exhibit-svp')
-  await ex2.getByRole('button').nth(1).click()
-  await ex2.getByRole('button').nth(0).click()
-  await ex2.getByRole('button').nth(1).click()
+  await ex2.getByRole('button', { name: /Predict: no/ }).click()
+  await ex2.getByRole('button', { name: /Good basis/ }).click()
+  await ex2.getByRole('button', { name: /Bad basis/ }).click()
 
   // Exhibit 3 — run each reduction to the end (exposes ok, fail and done lines)
   const ex3 = page.locator('#exhibit-reduce')
@@ -37,7 +37,7 @@ async function driveDemos(page: Page): Promise<void> {
     await ex3.getByRole('button').nth(preset).click()
     await ex3.getByRole('button', { name: 'Step' }).click()
     await ex3.getByRole('button', { name: 'Run to end' }).click()
-    await page.waitForTimeout(50)
+    await expect(ex3.getByText('finished —', { exact: false }).first()).toBeVisible()
   }
 
   // Exhibit 4 — accepted solutions, the wrong guess, and the banned cheat
@@ -48,29 +48,36 @@ async function driveDemos(page: Page): Promise<void> {
   await ex4.getByRole('button', { name: /The cheat/ }).click()
   await ex4.getByRole('button', { name: /Solution 2: z =/ }).click()
 
-  // Exhibit 5 / Kyber — fresh keys, bit flip, KEM both paths, then noise overflow
+  // Exhibit 5 / Kyber — fresh seeded keys, bit flip, KEM valid + implicit
+  // rejection, then the noise-overflow failure state
   const ex5 = page.locator('#exhibit-schemes')
-  await ex5.getByRole('button', { name: 'Fresh random keys' }).first().click()
+  await ex5.getByRole('button', { name: 'Fresh seeded keys' }).first().click()
   await ex5.getByRole('button', { name: /m0 =/ }).click()
   await ex5.getByRole('button', { name: 'Run KEM: encapsulate → decapsulate' }).click()
-  await page.waitForTimeout(300)
+  await expect(ex5.getByText('keys agree', { exact: false }).first()).toBeVisible()
   await ex5.getByRole('button', { name: /Tamper with the ciphertext/ }).click()
-  await page.waitForTimeout(300)
+  await expect(ex5.getByText('implicit-rejection fallback', { exact: false }).first()).toBeVisible()
   await page.locator('#kyber-noise').fill('34') // decryption-failure state
-  await page.waitForTimeout(100)
+  await expect(ex5.getByText('DECRYPTION FAILED', { exact: false }).first()).toBeVisible()
 
   // Exhibit 5 / Dilithium — KAT replay + verify + tamper, then live sign + verify + tamper
   await ex5.getByRole('button', { name: /Replay the slides/ }).click()
   await ex5.getByRole('button', { name: 'Verify', exact: true }).click()
-  await page.waitForTimeout(200)
+  await expect(ex5.getByText('SIGNATURE ACCEPTED', { exact: false }).first()).toBeVisible()
   await ex5.getByRole('button', { name: /Tamper with z/ }).click()
-  await page.waitForTimeout(200)
+  await expect(ex5.getByText('SIGNATURE REJECTED', { exact: false }).first()).toBeVisible()
   await ex5.getByRole('button', { name: /Sign \(live/ }).click()
-  await page.waitForTimeout(700)
+  await expect(ex5.getByText(/signed “/, { exact: false }).first()).toBeVisible({ timeout: 15_000 })
   await ex5.getByRole('button', { name: 'Verify', exact: true }).click()
-  await page.waitForTimeout(300)
+  await expect(ex5.getByText('SIGNATURE ACCEPTED', { exact: false }).first()).toBeVisible()
   await ex5.getByRole('button', { name: /tampered message/ }).click()
-  await page.waitForTimeout(300)
+  await expect(ex5.getByText('SIGNATURE REJECTED', { exact: false }).first()).toBeVisible()
+
+  // re-open any disclosure the interactions may have replaced
+  await page.evaluate(() => {
+    document.querySelectorAll('details').forEach((d) => ((d as HTMLDetailsElement).open = true))
+  })
+  await page.waitForTimeout(200)
 }
 
 async function scan(page: Page): Promise<void> {
@@ -96,4 +103,24 @@ test('no WCAG A/AA violations — light theme', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
   await driveDemos(page)
   await scan(page)
+})
+
+test('no horizontal overflow at phone widths and 200% desktop zoom', async ({ page }) => {
+  for (const width of [320, 360, 390, 768]) {
+    await page.setViewportSize({ width, height: 844 })
+    await page.goto('.')
+    await page.waitForTimeout(300)
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(overflow, `document overflows horizontally at ${width}px`).toBeLessThanOrEqual(0)
+  }
+  // 200% zoom approximation: halve the viewport CSS pixels at desktop width
+  await page.setViewportSize({ width: 720, height: 450 })
+  await page.goto('.')
+  await page.waitForTimeout(300)
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  )
+  expect(overflow, 'document overflows at 200% zoom equivalent').toBeLessThanOrEqual(0)
 })

@@ -73,6 +73,35 @@ export function mountExhibitSvp(root: HTMLElement): void {
     )
   }
 
-  root.append(toggle, h('div', { class: 'lattice-layout' }, view.svg, h('div', { class: 'lattice-controls' }, status)))
+  // predict → act → observe (GS-06): ask before the learner ever toggles
+  const predictStatus = h('p', { class: 'panel-status', role: 'status' })
+  const yesBtn = h('button', { type: 'button', text: 'Predict: yes, it changes' })
+  const noBtn = h('button', { type: 'button', text: 'Predict: no, it stays' })
+  const answer = (saidChanges: boolean): void => {
+    yesBtn.disabled = true
+    noBtn.disabled = true
+    setBasis('bad')
+    predictStatus.replaceChildren(
+      saidChanges
+        ? badge('warn', 'not quite — watch the highlighted vector: it does not move')
+        : badge('ok', 'correct — the shortest vector belongs to the lattice, not to any basis'),
+      h(
+        'span',
+        {},
+        ' The basis is only a description; the dots — and their shortest member — are the object itself. Toggle back and forth to confirm.',
+      ),
+    )
+  }
+  yesBtn.addEventListener('click', () => answer(true))
+  noBtn.addEventListener('click', () => answer(false))
+  const prediction = h(
+    'div',
+    { class: 'prediction' },
+    h('p', { class: 'hook', text: 'Predict first: when we switch to the bad basis, will the shortest vector of the lattice change?' }),
+    h('div', { class: 'button-row' }, yesBtn, noBtn),
+    predictStatus,
+  )
+
+  root.append(prediction, toggle, h('div', { class: 'lattice-layout' }, view.svg, h('div', { class: 'lattice-controls' }, status)))
   update()
 }

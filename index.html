@@ -165,9 +165,10 @@
         <aside class="cl-hero-why" aria-label="Why it matters">
           <span class="cl-hero-why-label">WHY IT MATTERS</span>
           <p class="cl-hero-why-text">
-            ML-KEM and ML-DSA now guard TLS, Signal and iMessage against harvest-now-decrypt-later quantum attacks, and
-            their security bottoms out in one geometric gap: a bad basis hides the short vectors a good basis reveals.
-            See that gap once and "lattice-based" stops being a buzzword.
+            ML-KEM already encrypts traffic in TLS, Signal (PQXDH) and iMessage (PQ3) against harvest-now-decrypt-later
+            quantum attacks; ML-DSA is the lattice signature chosen to replace RSA and ECDSA signing. The hardness both
+            lean on traces back to one geometric gap — a bad basis hides the short vectors a good basis reveals. See
+            that gap once and "lattice-based" stops being a buzzword.
           </p>
         </aside>
       </header>
@@ -179,8 +180,11 @@
           grid of dots is a lattice. The same grid can be described by many different pairs of arrows, and here is the
           strange part: short, near-perpendicular arrows make the grid's secrets (its shortest dot, its nearest dot to
           any spot) easy to read off, while long, nearly-parallel arrows describe the <em>identical</em> grid and hide
-          everything. Post-quantum cryptography is built on exactly that asymmetry: honest users hold an easy
-          description, attackers are handed a hopeless one.
+          everything. That asymmetry is the guiding <em>intuition</em> of lattice-based cryptography — but hold it
+          loosely: ML-KEM and ML-DSA never hand honest users a secret good basis. Their secrets are <em>short
+          vectors</em> hidden inside noisy modular equations (Exhibits 4–5), and what the schemes stand on is the
+          conjectured hardness of short-vector problems in high dimension, connected to MLWE and MSIS by security
+          reductions.
         </p>
         <p class="concept-map" aria-label="How the exhibits build on each other">
           <span class="map-step">① – ③ geometry: bases, SVP, CVP, LLL</span>
@@ -194,6 +198,28 @@
           believed hard; it does not prove hardness, and 2D lattices themselves are <em>easy</em> (Exhibit 3 solves
           them before your eyes — the hardness lives in dimension 500+).
         </p>
+        <details>
+          <summary>Glossary — the eleven words this page leans on</summary>
+          <ul role="list">
+            <li role="listitem"><strong>Basis</strong> — the vectors whose integer combinations generate the lattice; many bases, one lattice.</li>
+            <li role="listitem"><strong>Norm</strong> — a vector's length; the infinity norm is the largest absolute coordinate.</li>
+            <li role="listitem"><strong>SVP</strong> — Shortest Vector Problem: find a shortest nonzero lattice point.</li>
+            <li role="listitem"><strong>CVP</strong> — Closest Vector Problem: find the lattice point nearest a target.</li>
+            <li role="listitem"><strong>BDD</strong> — CVP when the target is promised to be very close (LWE's situation).</li>
+            <li role="listitem"><strong>LWE</strong> — Learning With Errors: recover s from noisy linear equations b = As + e mod q.</li>
+            <li role="listitem"><strong>SIS</strong> — Short Integer Solutions: find a short nonzero z with Az = 0 mod q.</li>
+            <li role="listitem"><strong>MLWE / MSIS</strong> — the same problems with polynomials in Z<sub>q</sub>[x]/(x&#8319;+1) as entries.</li>
+            <li role="listitem"><strong>KEM</strong> — a scheme that transports a random shared key (not your message).</li>
+            <li role="listitem"><strong>Signature</strong> — a scheme where only the key holder can produce values a public verifier accepts.</li>
+          </ul>
+          <p>
+            Sources: Menezes, <a href="https://eprint.iacr.org/2026/1098"><em>A gentle introduction to lattice-based
+            cryptography</em>, eprint 2026/1098</a> (v1.1 — all numbered Examples cited below), and the
+            <a href="https://cryptography101.ca/kyber-dilithium/">cryptography101.ca Kyber/Dilithium slides</a>
+            (August 2024 — the V1/V2/V3 page citations). Every worked-example value on this page runs as a
+            regression test against those sources.
+          </p>
+        </details>
       </section>
 
       <section class="card" aria-labelledby="ex1-h">
@@ -204,8 +230,11 @@
           your arrows still generate the same dots. The point t is a target: "decoding" rounds t's coordinates in your
           current basis to whole numbers — the Closest Vector Problem, solved the naive way. With the good basis the
           rounding error is small; switch to the bad basis of the same lattice and the same rounding lands far away.
+          (Examples 2.7, 2.8, 2.10, 2.24 of <a href="https://eprint.iacr.org/2026/1098">the notes</a>.)
         </p>
+        <p class="hook">Try first: press "Bad basis B&prime;" — does the dot pattern change? Does the decode?</p>
         <div id="exhibit-lattice"></div>
+        <p class="bridge">Next: if bases can hide the near points, can they hide the short ones too? That question has a name — SVP.</p>
       </section>
 
       <section class="card" aria-labelledby="ex2-h">
@@ -226,6 +255,7 @@
             with sieving) run in time exponential in the dimension.
           </p>
         </details>
+        <p class="bridge">Next: if a bad basis is the obstacle, can we compute our way back to a good one? Sometimes — that is lattice reduction.</p>
       </section>
 
       <section class="card" aria-labelledby="ex3-h">
@@ -241,6 +271,7 @@
           ⚠ What this isn't: LLL at toy sizes, shown honestly. Attacking real 500-dimensional schemes needs BKZ and
           sieving at scale, which no browser demo can meaningfully show — this lab stops at the mechanism.
         </p>
+        <p class="bridge">Next: cryptography cannot ship pictures of dots. The same geometry, rewritten as matrices mod q, is called LWE and SIS.</p>
       </section>
 
       <section class="card" aria-labelledby="ex4-h">
@@ -249,17 +280,23 @@
           Cryptography can't ship pictures of dots; it ships matrices modulo q. Learning With Errors hides a secret
           behind <em>noisy</em> linear equations; Short Integer Solutions asks for a <em>short</em> kernel vector. Both
           are the geometry you just played with, re-coordinatized: LWE is CVP and SIS is SVP, in a lattice built from
-          the matrix A. Type candidates and both sides of each equation are computed for real.
+          the matrix A (an exact formulation, &sect;3&ndash;4 of the notes, not an analogy). Type candidates and both
+          sides of each equation are computed for real. (Examples 4.3 and 3.2 of
+          <a href="https://eprint.iacr.org/2026/1098">the notes</a>.)
         </p>
         <div id="exhibit-lwe-sis" class="two-col"></div>
+        <p class="bridge">Next: swap the matrix entries for small polynomials and LWE/SIS become MLWE/MSIS — the exact problems under Kyber and Dilithium.</p>
       </section>
 
       <section class="card" aria-labelledby="ex5-h">
         <h2 id="ex5-h">Exhibit 5 · Standing on the gap: toy-Kyber and toy-Dilithium</h2>
         <p>
           Kyber (ML-KEM, FIPS 203) and Dilithium (ML-DSA, FIPS 204) upgrade LWE and SIS to <em>module</em> versions —
-          the same equations with polynomials in Z<sub>q</sub>[x]/(x⁴+1) as the numbers. Both demos below run the
-          notes' exact toy parameters and reproduce the slides' worked examples digit for digit; both let you break
+          the same equations with polynomials in Z<sub>q</sub>[x]/(x⁴+1) as the numbers. Notice what the secret is in
+          both schemes: a <em>short vector</em>, never a good basis — an ML-KEM recipient does not possess one. Basis
+          quality was the geometric lens of Exhibits 1–3; MLWE and MSIS are the exact problems, and the bridge from
+          them to worst-case lattice problems is a security reduction, not a picture. Both demos below run the
+          teaching slides' exact toy parameters, reproduce their worked examples digit for digit, and let you break
           things and watch the real arithmetic refuse.
         </p>
         <div id="exhibit-schemes" class="two-col"></div>
@@ -272,13 +309,13 @@
             <strong>Real:</strong> all lattice arithmetic (exact integers), Gauss and LLL reductions (instrumented, not
             animated from a script), all F<sub>q</sub> and R<sub>q</sub> arithmetic, the LWE/SIS instances and both toy
             schemes end to end, SHA-256 hashing (WebCrypto), rejection sampling, and every accept/reject decision on
-            this page. All worked-example values match the notes and slides exactly — they run as known-answer tests
-            in CI.
+            this page, including the KEM's implicit-rejection fallback path. All worked-example values match the notes
+            and slides exactly — they run as worked-example regression tests (not official FIPS/ACVP vectors) in CI.
           </li>
           <li role="listitem">
             <strong>Simplified:</strong> toy parameter sizes (n = 4 instead of 256); SHA-256 standing in for SHAKE;
-            Kyber shown without ciphertext compression and Dilithium without t-compression, exactly as the teaching
-            notes present them.
+            Kyber shown without ciphertext compression and Dilithium without t-compression or hints, exactly as the
+            teaching notes present them — each scheme panel carries a toy-vs-standard table listing every deviation.
           </li>
           <li role="listitem">
             <strong>Not proved:</strong> nothing here demonstrates that lattice problems are hard — 2D instances are
