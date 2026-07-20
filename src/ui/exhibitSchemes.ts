@@ -161,7 +161,8 @@ function kyberPanel(seeds: { k: number; d: number }): HTMLElement {
     else setFresh()
   })
   shareBtn.addEventListener('click', () => {
-    const url = `${location.origin}${location.pathname}?kseed=${seeds.k}&dseed=${seeds.d}`
+    // #exhibit-5 makes the link open directly on the schemes step in guided mode
+    const url = `${location.origin}${location.pathname}?kseed=${seeds.k}&dseed=${seeds.d}#exhibit-5`
     void navigator.clipboard
       .writeText(url)
       .then(() => announce.replaceChildren(badge('ok', 'experiment link copied — same seeds reproduce every value')))

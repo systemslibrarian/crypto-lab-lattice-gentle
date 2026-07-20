@@ -10,6 +10,12 @@ Everything is computed live in the browser: exact integer lattice arithmetic, an
 
 **Not production crypto** — a teaching demo. n = 4 offers no security (16 possible Kyber plaintexts), SHA-256 stands in for SHAKE, and 2D lattice problems are easy by design; the demo shows *why* the hardness assumptions have the shape they have, not that they hold.
 
+## Guided and Reference Modes
+
+The page opens in **Guided** mode: a ten-second prediction experiment sits in the first viewport (which basis decodes the target better? — answered by live arithmetic, verified against exhaustive search), and a progress rail walks one exhibit at a time — *Basis → SVP/CVP → Reduce → LWE & SIS → Schemes → Check* — with prev/next navigation and focus moved to each step's heading. **Reference** mode is the original all-on-one-page view for instructors and returning readers; the choice persists. The final *Check* step is a five-question exit check that tests **transfer, not recall**: lattice invariants under change of basis, what the real ML-KEM secret is (never a good basis), LWE-vs-SIS geometry, implicit rejection, and where hardness actually lives.
+
+Deep links open any exhibit directly (`#exhibit-1` … `#exhibit-5`, `#exit-check`), and `?kseed=…&dseed=…` restores seeded experiment state in either mode — the "Copy experiment link" button emits both.
+
 ## Exhibits
 
 1. **One lattice, many bases** — drag the basis vectors of the lattice from Example 2.24 of the notes (or type coordinates); exact integer arithmetic proves whether your basis still generates the same lattice, and Babai rounding decodes a draggable target point — the Closest Vector Problem, with the true closest vector found by exhaustive search for comparison. Presets replay the notes' good/bad basis pairs (Ex 2.7/2.8 and 2.24).
@@ -50,9 +56,10 @@ Drag basis vectors and the CVP target, step the reductions, type LWE/SIS candida
 ```bash
 npm ci
 npm run dev        # dev server
-npm test           # 56 unit tests incl. 32 worked-example KATs
+npm test           # 57 unit tests incl. 32 worked-example KATs
 npm run build      # typecheck + production build
-npm run test:a11y  # axe-core WCAG 2.1 AA gate, both themes (port 4390)
+npm run test:a11y  # axe (both themes + guided shell), keyboard-only workflows,
+                   # forced-colors/reduced-motion, overflow + first-viewport (port 4390)
 ```
 
 ## Related Demos
@@ -65,10 +72,17 @@ npm run test:a11y  # axe-core WCAG 2.1 AA gate, both themes (port 4390)
 
 ## Build & Verify
 
-- **56 Vitest unit tests**, colocated in `src/**/*.test.ts`, all passing — round-trips, fail-closed rejections, implicit-rejection behavior (fallback key determinism and separation from the real key), property checks (Gauss output attains λ₁ against brute force; LLL output verified LLL-reduced), and exhaustive solution counts for the LWE/SIS instances.
+- **57 Vitest unit tests**, colocated in `src/**/*.test.ts`, all passing — round-trips, fail-closed rejections, implicit-rejection behavior (fallback key determinism and separation from the real key), property checks (Gauss output attains λ₁ against brute force; LLL output verified LLL-reduced), and exhaustive solution counts for the LWE/SIS instances.
 - **32 worked-example KATs** (regression tests against the teaching sources, not official FIPS/ACVP vectors) replaying examples verbatim from eprint 2026/1098 v1.1 (2D bases, CVP rounding, Gauss 9.11/9.12, Gram–Schmidt 9.6, LLL 9.21, SIS 3.2, LWE 4.3) and the cryptography101.ca slides, August 2024 (R_q arithmetic, MLWE q=541, toy-Kyber pp. 50–51, toy-Dilithium pp. 106–109).
-- **Accessibility gate**: `@axe-core/playwright` scans the production build in **both themes** with every exhibit driven into its post-interaction states (including failure, tamper, and implicit-rejection states); zero WCAG 2.1 A/AA violations, plus a no-horizontal-overflow check at 320/360/390/768 px and a 200% zoom equivalent — all enforced in CI before deploy. Axe coverage is automated; announcement quality is additionally addressed by giving each panel a single concise live region instead of announcing whole tables.
+- **Accessibility gate**: `@axe-core/playwright` scans the production build in **both themes** with every exhibit driven into its post-interaction states (including failure, tamper, and implicit-rejection states), plus a separate scan of the guided-mode shell; zero WCAG 2.1 A/AA violations. Also enforced: no horizontal overflow at 320/360/390/768 px and a 200% zoom equivalent (guided *and* reference views), the first experiment fitting a 390×844 first viewport, and **keyboard-only** completion of the guided walkthrough (with focus management asserted), Exhibit 1 editing, and the exit check — alongside forced-colors and reduced-motion runs. Axe coverage is automated; announcement quality is additionally addressed by giving each panel a single concise live region instead of announcing whole tables.
 - **Deploy**: GitHub Actions → Pages; unit tests, typecheck, build, and the a11y gate all block a broken deploy.
+
+### Manual checks still open
+
+Two audit items cannot be automated and remain deliberately open:
+
+- **Screen-reader pass**: one manual NVDA walkthrough of each exhibit's primary workflow (automated checks assert concise live regions and keyboard operability, not announcement *quality*).
+- **Learner outcome study**: the exit check defines the five measurable outcomes; a usability session with representative novice learners (target: ≥80% first-try transfer without instructor help) has not been run.
 
 ---
 

@@ -55,6 +55,12 @@
   box-sizing: border-box;
 }
 
+/* authored display values (flex, grid) must not defeat the hidden attribute
+   that guided mode relies on */
+#app [hidden] {
+  display: none !important;
+}
+
 html {
   background-color: var(--bg);
 }
@@ -646,6 +652,107 @@ body {
   padding: 0.6rem 0.85rem;
   margin: 0.7rem 0;
   background: color-mix(in oklab, var(--accent) 5%, transparent);
+}
+
+/* ------- hero hook (first-viewport experiment) ------- */
+
+.hero-hook {
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, var(--border));
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  margin: 0.8rem 0 0.2rem;
+  background: color-mix(in oklab, var(--accent) 7%, transparent);
+  max-width: 60ch;
+}
+
+.hero-hook .hook {
+  margin: 0 0 0.3rem;
+}
+
+.hook-question {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-dim);
+}
+
+.hook-result {
+  overflow-wrap: anywhere;
+}
+
+.hook-result:empty {
+  display: none;
+}
+
+/* ------- guided / reference shell ------- */
+
+.guide-modes {
+  margin: 0 0 0.5rem;
+  align-items: center;
+}
+
+.guide-mode-hint {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.guide-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.5rem 0;
+  border-top: 1px dashed var(--border);
+  border-bottom: 1px dashed var(--border);
+}
+
+.guide-rail button {
+  font-size: 0.85rem;
+}
+
+.guide-rail button[aria-current='step'] {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 18%, var(--bg-inset));
+  font-weight: 600;
+}
+
+.guide-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+
+.guide-nav button:only-of-type,
+.guide-nav button:last-child {
+  margin-left: auto;
+}
+
+#app h2:focus-visible,
+#app h2:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* ------- exit check ------- */
+
+.check-questions {
+  margin: 0.4rem 0 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.check-q {
+  border-top: 1px dashed var(--border);
+  padding: 0.7rem 0 0.3rem;
+  margin: 0.4rem 0;
+}
+
+.check-options button {
+  text-align: left;
+}
+
+.check-options button.check-correct:disabled {
+  opacity: 1;
+  border-color: var(--ok);
 }
 
 /* ------- footer ------- */

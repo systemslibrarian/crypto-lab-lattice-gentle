@@ -197,3 +197,28 @@ describe('pointsInBox', () => {
     expect(s1.size).toBeGreaterThan(10)
   })
 })
+
+describe('hero hook — the first-viewport experiment stays truthful', () => {
+  // heroHook.ts claims, for t = (9, 2): rounding in B finds the true closest
+  // lattice point, and rounding in B′ of the same lattice misses by ~3x.
+  // Lock the claim to the arithmetic so a preset edit cannot silently
+  // falsify the page copy.
+  it('B rounds t = (9,2) to the exhaustive-search closest point; B′ lands ~3x farther', () => {
+    const B: Basis2 = [
+      [5, 3],
+      [2, 7],
+    ]
+    const Bp: Basis2 = [
+      [12, 13],
+      [7, 10],
+    ]
+    const t = [9, 2] as const
+    expect(sameLattice(B, Bp)).toBe(true)
+    const good = babaiRound(B, t)
+    const bad = babaiRound(Bp, t)
+    const truth = closestVector(B, t)
+    expect(normSq(sub(t, good.point))).toBe(truth.distSq) // good basis decodes optimally
+    expect(normSq(sub(t, good.point))).toBe(10)
+    expect(normSq(sub(t, bad.point))).toBe(85) // same lattice, ~3x the miss
+  })
+})

@@ -12,6 +12,15 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 async function driveDemos(page: Page): Promise<void> {
   await page.addStyleTag({ content: `*,*::before,*::after{animation:none!important;transition:none!important}` })
 
+  // guided mode is the default and hides most sections; the full-page scan
+  // wants everything mounted, so switch to the reference view first
+  await page.getByRole('button', { name: 'Reference', exact: true }).click()
+  await expect(page.locator('#exhibit-5')).toBeVisible()
+
+  // hero hook — the seductive wrong answer, exposing the warn feedback state
+  await page.getByRole('button', { name: 'Same dots — they must tie' }).click()
+  await expect(page.getByRole('link', { name: /Drag it yourself/ })).toBeVisible()
+
   // reveal all progressive disclosure
   await page.evaluate(() => {
     document.querySelectorAll('details').forEach((d) => ((d as HTMLDetailsElement).open = true))
@@ -73,6 +82,16 @@ async function driveDemos(page: Page): Promise<void> {
   await ex5.getByRole('button', { name: /tampered message/ }).click()
   await expect(ex5.getByText('SIGNATURE REJECTED', { exact: false }).first()).toBeVisible()
 
+  // exit check — one wrong answer (warn feedback + revealed correct option),
+  // four right ones, then the summary and reset states
+  const check = page.locator('#exhibit-check')
+  await check.getByRole('button', { name: 'The set of lattice points' }).click()
+  await check.getByRole('button', { name: /the secret is a short vector/ }).click()
+  await check.getByRole('button', { name: 'SIS — a shortest-vector problem' }).click()
+  await check.getByRole('button', { name: /implicit rejection is behaving exactly/ }).click()
+  await check.getByRole('button', { name: /Hardness appears only in high dimension/ }).click()
+  await expect(check.getByText('on the first try', { exact: false })).toBeVisible()
+
   // re-open any disclosure the interactions may have replaced
   await page.evaluate(() => {
     document.querySelectorAll('details').forEach((d) => ((d as HTMLDetailsElement).open = true))
@@ -105,10 +124,45 @@ test('no WCAG A/AA violations — light theme', async ({ page }) => {
   await scan(page)
 })
 
+test('no WCAG A/AA violations — guided mode shell', async ({ page }) => {
+  await page.goto('.')
+  // guided is the default view; walk every step so the rail, prev/next and
+  // exit-check states are all exercised, then scan the final state (the
+  // exhibits' own content is covered by the reference-mode scans above)
+  for (const label of ['2 · SVP/CVP', '3 · Reduce', '4 · LWE & SIS', '5 · Schemes', '6 · Check']) {
+    await page.getByRole('button', { name: `Next: ${label} ›` }).click()
+  }
+  await expect(page.locator('#exit-check')).toBeVisible()
+  await scan(page)
+})
+
+test('first-viewport experiment: input and response fit a 390×844 phone screen', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('.')
+  // a meaningful input sits inside the first viewport, below the shared header
+  const btn = page.getByRole('button', { name: 'B decodes closer' })
+  const box = await btn.boundingBox()
+  expect(box, 'hook button not rendered').not.toBeNull()
+  expect(box!.y + box!.height, 'first interactive control is below the first screen').toBeLessThan(844)
+  // and its response begins inside the same screen
+  await btn.click()
+  const result = page.locator('.hook-result')
+  await expect(result).toBeVisible()
+  const rbox = await result.boundingBox()
+  expect(rbox!.y, 'the response starts below the first screen').toBeLessThan(844)
+})
+
 test('no horizontal overflow at phone widths and 200% desktop zoom', async ({ page }) => {
   for (const width of [320, 360, 390, 768]) {
     await page.setViewportSize({ width, height: 844 })
     await page.goto('.')
+    await page.waitForTimeout(300)
+    const guidedOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(guidedOverflow, `guided view overflows horizontally at ${width}px`).toBeLessThanOrEqual(0)
+    // reference mode mounts every section at once — the worst case
+    await page.getByRole('button', { name: 'Reference', exact: true }).click()
     await page.waitForTimeout(300)
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -118,6 +172,7 @@ test('no horizontal overflow at phone widths and 200% desktop zoom', async ({ pa
   // 200% zoom approximation: halve the viewport CSS pixels at desktop width
   await page.setViewportSize({ width: 720, height: 450 })
   await page.goto('.')
+  await page.getByRole('button', { name: 'Reference', exact: true }).click()
   await page.waitForTimeout(300)
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
