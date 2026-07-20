@@ -1,0 +1,20 @@
+{
+  "name": "crypto-lab-lattice-gentle",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:a11y": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.61.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.4",
+    "vitest": "^3.2.4"
+  }
+}

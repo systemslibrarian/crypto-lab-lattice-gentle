@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <script>
+      ;(function () {
+        const saved = localStorage.getItem('theme')
+        document.documentElement.setAttribute('data-theme', saved ?? 'dark')
+      })()
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lattice Gentle — crypto-lab</title>
+    <meta
+      name="description"
+      content="A gentle walk from a draggable 2D lattice through SVP, CVP, LLL, LWE and SIS to toy-Kyber (ML-KEM) and toy-Dilithium (ML-DSA), with real F_q arithmetic and a real LLL reduction."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Lattice Gentle — crypto-lab" />
+    <meta
+      property="og:description"
+      content="A gentle walk from a draggable 2D lattice through SVP, CVP, LLL, LWE and SIS to toy-Kyber (ML-KEM) and toy-Dilithium (ML-DSA), with real F_q arithmetic and a real LLL reduction."
+    />
+    <meta property="og:url" content="https://systemslibrarian.github.io/crypto-lab-lattice-gentle/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Lattice Gentle — crypto-lab" />
+    <meta
+      name="twitter:description"
+      content="A gentle walk from a draggable 2D lattice through SVP, CVP, LLL, LWE and SIS to toy-Kyber (ML-KEM) and toy-Dilithium (ML-DSA), with real F_q arithmetic and a real LLL reduction."
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔷</text></svg>"
+    />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+<!-- BEGIN crypto-lab shared header — managed; edit shared-header.html + re-run reapply-header.py
+     Identical on every lab. Self-contained styles. Accents use each demo's own
+     --accent CSS variable (teal #35d6bb fallback). The ONLY per-repo value is the
+     repo name (crypto-lab-lattice-gentle) in the GitHub link.
+     Source of truth: github.com/systemslibrarian/crypto-lab/shared-header.html -->
+<style>
+  .cl-topbar{
+    /* The bar is always dark (#0b1512) regardless of page theme, so header
+       text must always be light. Mix each lab's --accent toward near-white so
+       the hue still tints the brand but contrast stays >=4.5:1 on the bar even
+       when a lab's accent is dark (e.g. a light-theme #1a56db). */
+    --cl-ink: color-mix(in srgb, var(--accent, #35d6bb) 60%, #eafff8);
+    display:flex;align-items:center;justify-content:space-between;gap:1rem;
+    padding:.7rem clamp(.9rem,3vw,2rem);
+    background:#0b1512;
+    border-bottom:1px solid color-mix(in srgb, var(--accent, #35d6bb) 22%, transparent);
+    font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    position:sticky;top:0;z-index:1000;
+  }
+  .cl-brand{display:flex;align-items:center;gap:.8rem;text-decoration:none}
+  .cl-badge{
+    flex:0 0 auto;display:grid;place-items:center;width:40px;height:40px;
+    border:1.5px solid var(--accent, #35d6bb);border-radius:10px;
+    color:var(--cl-ink);font-weight:700;font-size:.95rem;letter-spacing:.05em;
+  }
+  .cl-brand-text{display:flex;flex-direction:column;line-height:1.15}
+  .cl-title{color:#eafff8;font-weight:700;font-size:1.05rem;letter-spacing:.12em}
+  .cl-sub{color:#5e8b80;font-size:.72rem;letter-spacing:.04em}
+  .cl-actions{display:flex;align-items:center;gap:.5rem}
+  .cl-btn{
+    display:inline-flex;align-items:center;gap:.4rem;
+    padding:.5rem .85rem;border-radius:10px;
+    border:1px solid color-mix(in srgb, var(--accent, #35d6bb) 38%, transparent);
+    background:transparent;color:var(--cl-ink);cursor:pointer;
+    font:inherit;font-size:.78rem;font-weight:700;letter-spacing:.1em;
+    text-transform:uppercase;text-decoration:none;transition:background .15s,border-color .15s,color .15s;
+  }
+  .cl-btn:hover{
+    background:color-mix(in srgb, var(--accent, #35d6bb) 14%, transparent);
+    border-color:var(--accent, #35d6bb);color:#eafff8;
+  }
+  .cl-btn svg{width:15px;height:15px}
+  .cl-icon{padding:.5rem .6rem;font-size:.95rem}
+  /* Skip-to-content link: first focusable element so keyboard users can bypass
+     this sticky header (WCAG 2.4.1). Hidden until focused. Fixed light-on-dark
+     pair (not --accent, which can be a dark hue on some labs) keeps contrast AA. */
+  .cl-skip-link{
+    position:absolute;left:.5rem;top:-3rem;z-index:1001;
+    padding:.55rem 1rem;border-radius:0 0 10px 10px;
+    background:#eafff8;color:#0b1512;
+    font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    font-weight:700;font-size:.8rem;letter-spacing:.04em;text-decoration:none;
+    transition:top .15s ease;
+  }
+  .cl-skip-link:focus{top:0;outline:2px solid var(--accent,#35d6bb);outline-offset:2px;}
+  /* hide each lab's own in-page theme toggle — the bar's toggle replaces it.
+     element stays in the DOM so the lab's theme JS keeps working. */
+  body :is(#theme-toggle,#themeToggle,.theme-toggle,.theme-toggle-btn,[data-theme-toggle]):not(#cl-theme-toggle){display:none!important}
+  @media(max-width:560px){
+    .cl-sub{display:none}
+    .cl-btn span{display:none}
+    .cl-btn svg{margin:0}
+  }
+</style>
+<a class="cl-skip-link" href="#app">Skip to content</a>
+<header class="cl-topbar" role="banner" aria-label="Crypto Lab">
+  <a class="cl-brand" href="https://crypto-lab.systemslibrarian.dev/" aria-label="Crypto Lab home">
+    <span class="cl-badge">CL</span>
+    <span class="cl-brand-text">
+      <span class="cl-title">CRYPTO LAB</span>
+      <span class="cl-sub">systemslibrarian.dev</span>
+    </span>
+  </a>
+  <nav class="cl-actions" aria-label="Crypto Lab navigation">
+    <a class="cl-btn" href="https://crypto-lab.systemslibrarian.dev/" aria-label="Crypto Lab menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <span>Menu</span>
+    </a>
+    <a class="cl-btn" href="https://github.com/systemslibrarian/crypto-lab-lattice-gentle" target="_blank" rel="noopener" aria-label="View this project on GitHub">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7 0-.7 0-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 5 18.3 5.3 18.3 5.3c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+      <span>GitHub</span>
+    </a>
+    <button class="cl-btn cl-icon" id="cl-theme-toggle" type="button" aria-label="Toggle color theme" title="Toggle theme">☀</button>
+  </nav>
+</header>
+<script>
+  (function () {
+    var t = document.getElementById('cl-theme-toggle');
+    if (t) {
+      var cur = function(){ return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; };
+      var paint = function(){ t.textContent = cur() === 'light' ? '☾' : '☀'; };
+      paint();
+      t.addEventListener('click', function () {
+        var next = cur() === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        try { localStorage.setItem('theme', next); } catch (e) {}
+        paint();
+      });
+    }
+    // A page may have only one banner landmark. This shared site header is it;
+    // demote any banner a lab also declared on its own page header (explicit
+    // role="banner", or an implicit <header> child of <body>) so landmarks stay unique.
+    function dedupeBanner() {
+      var bar = document.querySelector('.cl-topbar');
+      if (!bar) return;
+      document.querySelectorAll('[role="banner"]').forEach(function (el) {
+        if (el !== bar) el.setAttribute('role', 'group');
+      });
+      Array.prototype.forEach.call(document.body ? document.body.children : [], function (el) {
+        if (el.tagName === 'HEADER' && el !== bar && !el.hasAttribute('role')) el.setAttribute('role', 'group');
+      });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', dedupeBanner);
+    else dedupeBanner();
+  })();
+</script>
+<!-- END crypto-lab shared header -->
+    <div id="app">
+      <header class="cl-hero">
+        <div class="cl-hero-main">
+          <h1 class="cl-hero-title">Lattice Gentle</h1>
+          <p class="cl-hero-sub">SVP · LWE · SIS · eprint 2026/1098</p>
+          <p class="cl-hero-desc">
+            Drag a 2D lattice's basis, step a real LLL reduction, solve real LWE and SIS instances over F<sub>q</sub>,
+            and watch toy-Kyber and toy-Dilithium stand on them — every number on this page is computed live.
+          </p>
+        </div>
+        <aside class="cl-hero-why" aria-label="Why it matters">
+          <span class="cl-hero-why-label">WHY IT MATTERS</span>
+          <p class="cl-hero-why-text">
+            ML-KEM and ML-DSA now guard TLS, Signal and iMessage against harvest-now-decrypt-later quantum attacks, and
+            their security bottoms out in one geometric gap: a bad basis hides the short vectors a good basis reveals.
+            See that gap once and "lattice-based" stops being a buzzword.
+          </p>
+        </aside>
+      </header>
+
+      <section class="card intro-card" aria-labelledby="intro-h">
+        <h2 id="intro-h">What is a lattice?</h2>
+        <p>
+          Take two arrows and stamp a dot at every whole-number combination of them — that endless, perfectly regular
+          grid of dots is a lattice. The same grid can be described by many different pairs of arrows, and here is the
+          strange part: short, near-perpendicular arrows make the grid's secrets (its shortest dot, its nearest dot to
+          any spot) easy to read off, while long, nearly-parallel arrows describe the <em>identical</em> grid and hide
+          everything. Post-quantum cryptography is built on exactly that asymmetry: honest users hold an easy
+          description, attackers are handed a hopeless one.
+        </p>
+        <p class="concept-map" aria-label="How the exhibits build on each other">
+          <span class="map-step">① – ③ geometry: bases, SVP, CVP, LLL</span>
+          <span class="map-arrow" aria-hidden="true">→</span>
+          <span class="map-step">④ the same gap over F<sub>q</sub>: LWE &amp; SIS</span>
+          <span class="map-arrow" aria-hidden="true">→</span>
+          <span class="map-step">⑤ module versions: MLWE &amp; MSIS ⇒ ML-KEM &amp; ML-DSA</span>
+        </p>
+        <p class="what-this-isnt">
+          ⚠ Not production crypto — a teaching demo with deliberately tiny parameters. It shows why the problems are
+          believed hard; it does not prove hardness, and 2D lattices themselves are <em>easy</em> (Exhibit 3 solves
+          them before your eyes — the hardness lives in dimension 500+).
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="ex1-h">
+        <h2 id="ex1-h">Exhibit 1 · One lattice, many bases — and decoding by rounding</h2>
+        <p>
+          The dots are a fixed lattice (Example 2.24 of the notes). The arrows b₁, b₂ are a <em>description</em> of it —
+          drag their tips (or type coordinates) and watch the status line prove, by exact integer arithmetic, whether
+          your arrows still generate the same dots. The point t is a target: "decoding" rounds t's coordinates in your
+          current basis to whole numbers — the Closest Vector Problem, solved the naive way. With the good basis the
+          rounding error is small; switch to the bad basis of the same lattice and the same rounding lands far away.
+        </p>
+        <div id="exhibit-lattice"></div>
+      </section>
+
+      <section class="card" aria-labelledby="ex2-h">
+        <h2 id="ex2-h">Exhibit 2 · Good basis, bad basis — the Shortest Vector Problem</h2>
+        <p>
+          The Shortest Vector Problem (SVP) asks: given a basis, find a shortest nonzero lattice point. Here the
+          shortest vector is found by exhaustive search and highlighted; toggle between the two bases of Examples
+          2.7/2.8 and watch the answer stay put while its <em>visibility</em> changes completely.
+        </p>
+        <div id="exhibit-svp"></div>
+        <details>
+          <summary>Exact vs approximate — and where hardness really lives</summary>
+          <p>
+            Real cryptanalysis rarely needs an exactly-shortest vector: approx-SVP (find a vector at most γ times
+            longer) is the working problem, and it only gets easier as γ grows. In two dimensions everything here is
+            easy — Gauss's algorithm in Exhibit 3 solves SVP outright. The conjectured hardness that Kyber and
+            Dilithium lean on appears when the dimension reaches the hundreds, where the best known algorithms (BKZ
+            with sieving) run in time exponential in the dimension.
+          </p>
+        </details>
+      </section>
+
+      <section class="card" aria-labelledby="ex3-h">
+        <h2 id="ex3-h">Exhibit 3 · Turning a bad basis good: Gauss and LLL, step by step</h2>
+        <p>
+          Reduction algorithms repair bad bases. Gauss's algorithm (2D) repeatedly subtracts the right whole-number
+          multiple of the shorter vector from the longer one — watch ‖v‖ collapse. LLL generalizes exactly that
+          subtraction to any dimension and adds one new idea, the Lovász condition, which decides when two neighbours
+          should swap places. Every line below is replayed from the real algorithm's trace.
+        </p>
+        <div id="exhibit-reduce"></div>
+        <p class="what-this-isnt">
+          ⚠ What this isn't: LLL at toy sizes, shown honestly. Attacking real 500-dimensional schemes needs BKZ and
+          sieving at scale, which no browser demo can meaningfully show — this lab stops at the mechanism.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="ex4-h">
+        <h2 id="ex4-h">Exhibit 4 · The same gap, spoken in F<sub>q</sub>: LWE and SIS</h2>
+        <p>
+          Cryptography can't ship pictures of dots; it ships matrices modulo q. Learning With Errors hides a secret
+          behind <em>noisy</em> linear equations; Short Integer Solutions asks for a <em>short</em> kernel vector. Both
+          are the geometry you just played with, re-coordinatized: LWE is CVP and SIS is SVP, in a lattice built from
+          the matrix A. Type candidates and both sides of each equation are computed for real.
+        </p>
+        <div id="exhibit-lwe-sis" class="two-col"></div>
+      </section>
+
+      <section class="card" aria-labelledby="ex5-h">
+        <h2 id="ex5-h">Exhibit 5 · Standing on the gap: toy-Kyber and toy-Dilithium</h2>
+        <p>
+          Kyber (ML-KEM, FIPS 203) and Dilithium (ML-DSA, FIPS 204) upgrade LWE and SIS to <em>module</em> versions —
+          the same equations with polynomials in Z<sub>q</sub>[x]/(x⁴+1) as the numbers. Both demos below run the
+          notes' exact toy parameters and reproduce the slides' worked examples digit for digit; both let you break
+          things and watch the real arithmetic refuse.
+        </p>
+        <div id="exhibit-schemes" class="two-col"></div>
+      </section>
+
+      <section class="card" aria-labelledby="honest-h">
+        <h2 id="honest-h">What's real here — and what isn't</h2>
+        <ul role="list">
+          <li role="listitem">
+            <strong>Real:</strong> all lattice arithmetic (exact integers), Gauss and LLL reductions (instrumented, not
+            animated from a script), all F<sub>q</sub> and R<sub>q</sub> arithmetic, the LWE/SIS instances and both toy
+            schemes end to end, SHA-256 hashing (WebCrypto), rejection sampling, and every accept/reject decision on
+            this page. All worked-example values match the notes and slides exactly — they run as known-answer tests
+            in CI.
+          </li>
+          <li role="listitem">
+            <strong>Simplified:</strong> toy parameter sizes (n = 4 instead of 256); SHA-256 standing in for SHAKE;
+            Kyber shown without ciphertext compression and Dilithium without t-compression, exactly as the teaching
+            notes present them.
+          </li>
+          <li role="listitem">
+            <strong>Not proved:</strong> nothing here demonstrates that lattice problems are hard — 2D instances are
+            easy by design. The demo shows <em>why</em> the hardness assumption has the shape it has, not that it holds.
+          </li>
+          <li role="listitem">
+            <strong>Out of scope:</strong> full-parameter ML-KEM/ML-DSA (see crypto-lab-kyber-vault and
+            crypto-lab-dilithium-seal), lattice attacks at scale — BKZ, sieving, nonce leaks (see
+            crypto-lab-nonce-lattice), and non-lattice PQC families (see crypto-lab-pq-families).
+          </li>
+        </ul>
+      </section>
+
+      <footer class="scripture-footer">
+        <p>
+          Related demos:
+          <a href="https://systemslibrarian.github.io/crypto-lab-kyber-vault/">crypto-lab-kyber-vault</a> ·
+          <a href="https://systemslibrarian.github.io/crypto-lab-dilithium-seal/">crypto-lab-dilithium-seal</a> ·
+          <a href="https://systemslibrarian.github.io/crypto-lab-nonce-lattice/">crypto-lab-nonce-lattice</a> ·
+          <a href="https://systemslibrarian.github.io/crypto-lab-lwe-hints/">crypto-lab-lwe-hints</a>
+        </p>
+        <p>So whether you eat or drink or whatever you do, do it all for the glory of God. — 1 Corinthians 10:31</p>
+      </footer>
+    </div>
+  </body>
+</html>
