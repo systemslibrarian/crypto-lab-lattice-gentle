@@ -702,7 +702,7 @@ function dilithiumPanel(seeds: { k: number; d: number }): HTMLElement {
       deltaTable([
         ['Ring dimension n', '4', '256'],
         ['Modulus q', '16417', '8380417'],
-        ['(k, ℓ)', '(3, 2)', '(6,5) / (8,7) by parameter set'],
+        ['(k, ℓ)', '(3, 2)', '(4,4) / (6,5) / (8,7) by parameter set'],
         ['Hash / XOF', 'SHA-256 stand-in', 'SHAKE128/256'],
         ['t compression + hints', 'omitted (slides §V3b)', 'normative (Power2Round, MakeHint/UseHint)'],
         ['Challenge weight τ', '4 of 4 coefficients', '39–60 of 256'],
