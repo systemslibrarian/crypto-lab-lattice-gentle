@@ -35,11 +35,6 @@
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
-<!-- BEGIN crypto-lab shared header — managed; edit shared-header.html + re-run reapply-header.py
-     Identical on every lab. Self-contained styles. Accents use each demo's own
-     --accent CSS variable (teal #35d6bb fallback). The ONLY per-repo value is the
-     repo name (crypto-lab-lattice-gentle) in the GitHub link.
-     Source of truth: github.com/systemslibrarian/crypto-lab/shared-header.html -->
 <style>
   .cl-topbar{
     /* The bar is always dark (#0b1512) regardless of page theme, so header
@@ -151,8 +146,7 @@
     else dedupeBanner();
   })();
 </script>
-<!-- END crypto-lab shared header -->
-    <div id="app">
+    <main id="app">
       <header class="cl-hero">
         <div class="cl-hero-main">
           <h1 class="cl-hero-title">Lattice Gentle</h1>
@@ -344,7 +338,7 @@
 
       <div id="guide-nav"></div>
 
-      <footer class="scripture-footer">
+      <footer class="scripture-footer" role="contentinfo">
         <p>
           Related demos:
           <a href="https://systemslibrarian.github.io/crypto-lab-kyber-vault/">crypto-lab-kyber-vault</a> ·
@@ -354,6 +348,6 @@
         </p>
         <p>So whether you eat or drink or whatever you do, do it all for the glory of God. — 1 Corinthians 10:31</p>
       </footer>
-    </div>
+    </main>
   </body>
 </html>
