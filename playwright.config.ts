@@ -13,7 +13,10 @@ export default defineConfig({
     colorScheme: 'dark',
   },
   webServer: {
-    command: 'npm run preview -- --port 4390 --strictPort',
+    // build before serving: `preview` only serves whatever is already in
+    // dist/, so without this a failing build leaves the last good bundle in
+    // place and the suite passes green against code that no longer compiles
+    command: 'npm run build && npm run preview -- --port 4390 --strictPort',
     url: 'http://localhost:4390/crypto-lab-lattice-gentle/',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
