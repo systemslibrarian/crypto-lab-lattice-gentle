@@ -13,6 +13,7 @@
   --text: #e9eff6;
   --text-dim: #a4b6c9;
   --border: #2b3d52;
+  --control-border: #627991;
   --ok: #5fe19c;
   --warn: #f5c451;
   --bad: #ff8f8f;
@@ -34,6 +35,7 @@
   --text: #16222f;
   --text-dim: #47596c;
   --border: #b9c9d8;
+  --control-border: #74889b;
   --ok: #12703c;
   --warn: #6d4400;
   --bad: #b42323;
@@ -242,7 +244,7 @@ body {
 #app input[type='text'] {
   background-color: var(--bg-inset);
   color: var(--text);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: 6px;
   padding: 0.3rem 0.4rem;
   font-family: inherit;
