@@ -75,6 +75,10 @@ async function driveDemos(page: Page): Promise<void> {
   await expect(ex5.getByText('SIGNATURE ACCEPTED', { exact: false }).first()).toBeVisible()
   await ex5.getByRole('button', { name: /Tamper with z/ }).click()
   await expect(ex5.getByText('SIGNATURE REJECTED', { exact: false }).first()).toBeVisible()
+  // pin the signing seed: with 4-bit toy challenges a tampered message
+  // collides (and is accepted as a labelled toy forgery) about 1/16 of the
+  // time — seed 7 deterministically reaches the REJECTED state asserted below
+  await page.locator('#dil-seed').fill('7')
   await ex5.getByRole('button', { name: /Sign \(live/ }).click()
   await expect(ex5.getByText(/signed “/, { exact: false }).first()).toBeVisible({ timeout: 15_000 })
   await ex5.getByRole('button', { name: 'Verify', exact: true }).click()

@@ -17,6 +17,7 @@ import {
   randomKeyMaterial,
 } from './toyDilithium'
 import { vecSub, matVec } from '../ring/rq'
+import { seededRand } from '../random'
 
 const P = { q: DILITHIUM_PARAMS.q, n: DILITHIUM_PARAMS.n }
 
@@ -77,15 +78,33 @@ describe('live sign/verify (Fiat–Shamir with aborts)', () => {
     const v = await verify({ A: keys.A, t: keys.t }, 'lattice gentle', result.signature)
     expect(v.accepted).toBe(true)
   })
-  it('fail-closed: rejects a signature on a tampered message', async () => {
-    const keys = randomKeyMaterial()
-    const result = await sign(keys, 'original message')
-    const v = await verify({ A: keys.A, t: keys.t }, 'tampered message', result.signature)
+  // The toy challenge is only 4 sign bits (16 possible challenges), so a
+  // tampered message re-derives the SAME challenge about 1 time in 16. The
+  // rejection tests below therefore pin seeds (same seed derivation as the UI:
+  // seed ^ 0x5eed) instead of sampling fresh randomness, and the forgery test
+  // pins a seed where the collision actually happens — the toy-scale attack
+  // the exhibit warns about.
+  it('fail-closed: rejects a signature on a tampered message (pinned seed, no challenge collision)', async () => {
+    const keys = keygenFrom(DILITHIUM_KAT.A, DILITHIUM_KAT.s1, DILITHIUM_KAT.s2)
+    const result = await sign(keys, 'a gentle message', 1000, seededRand((7 ^ 0x5eed) >>> 0))
+    const v = await verify({ A: keys.A, t: keys.t }, 'a gentle message!', result.signature)
     expect(v.accepted).toBe(false)
   })
+  it('toy-scale forgery: a tampered message is ACCEPTED when the 4-bit challenge collides (pinned seed)', async () => {
+    const keys = keygenFrom(DILITHIUM_KAT.A, DILITHIUM_KAT.s1, DILITHIUM_KAT.s2)
+    const result = await sign(keys, 'a gentle message', 1000, seededRand((32 ^ 0x5eed) >>> 0))
+    const honest = await verify({ A: keys.A, t: keys.t }, 'a gentle message', result.signature)
+    expect(honest.accepted).toBe(true)
+    // seed 32 makes H(w1' ‖ tampered) share its 4 challenge sign bits with the
+    // original — the ~1/16 collision that a 256-coefficient challenge space
+    // makes negligible in real ML-DSA.
+    const forged = await verify({ A: keys.A, t: keys.t }, 'a gentle message!', result.signature)
+    expect(forged.accepted).toBe(true)
+    expect(forged.cPrime).toEqual(result.signature.c)
+  })
   it('fail-closed: rejects a tampered z (both the recomputed challenge and the norm gate)', async () => {
-    const keys = randomKeyMaterial()
-    const result = await sign(keys, 'msg')
+    const keys = keygenFrom(DILITHIUM_KAT.A, DILITHIUM_KAT.s1, DILITHIUM_KAT.s2)
+    const result = await sign(keys, 'msg', 1000, seededRand((7 ^ 0x5eed) >>> 0))
     const z = result.signature.z.map((f) => [...f])
     z[0][0] += 1
     const v = await verify({ A: keys.A, t: keys.t }, 'msg', { c: result.signature.c, z })

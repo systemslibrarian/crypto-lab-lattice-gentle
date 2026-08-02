@@ -589,7 +589,7 @@ function dilithiumPanel(seeds: { k: number; d: number }): HTMLElement {
     })
   })
 
-  async function runVerify(msg: string, sig: Signature, label: string): Promise<void> {
+  async function runVerify(msg: string, sig: Signature, label: string, tamperedMsg = false): Promise<void> {
     await withBusy([verifyBtn, tamperMsgBtn, tamperZBtn], verifyRegion, async () => {
       const v = await verify({ A: keys.A, t: keys.t }, msg, sig)
       verifyRegion.replaceChildren(
@@ -614,10 +614,25 @@ function dilithiumPanel(seeds: { k: number; d: number }): HTMLElement {
           ),
         ),
         vecLines('w₁′ = HighBits(A·z − c·t)', v.w1Prime, DP),
-        h('p', {}, v.accepted ? badge('ok', 'SIGNATURE ACCEPTED') : badge('bad', 'SIGNATURE REJECTED — the real verifier fails closed')),
+        h(
+          'p',
+          {},
+          v.accepted
+            ? tamperedMsg
+              ? badge(
+                  'warn',
+                  'SIGNATURE ACCEPTED — a toy-scale forgery: with n = τ = 4 the challenge is just 4 sign bits, so a tampered message re-derives the same challenge about 1 time in 16. ML-DSA’s challenge space (τ = 39–60 of 256 coefficients) makes this chance negligible.',
+                )
+              : badge('ok', 'SIGNATURE ACCEPTED')
+            : badge('bad', 'SIGNATURE REJECTED — the real verifier fails closed'),
+        ),
       )
       announce.replaceChildren(
-        v.accepted ? badge('ok', 'verification: signature accepted') : badge('bad', 'verification: signature rejected'),
+        v.accepted
+          ? tamperedMsg
+            ? badge('warn', 'verification: tampered message accepted — a toy-scale challenge collision (about 1 in 16)')
+            : badge('ok', 'verification: signature accepted')
+          : badge('bad', 'verification: signature rejected'),
       )
     })
   }
@@ -675,7 +690,12 @@ function dilithiumPanel(seeds: { k: number; d: number }): HTMLElement {
         h('p', {}, badge('info', 'the worked example fixes the challenge directly and signs no message — use “Sign (live)” to see message tampering rejected')),
       )
     } else {
-      void runVerify(lastMsg + '!', lastSig, 'Same signature, message changed by one character — the challenge re-derivation must now disagree.')
+      void runVerify(
+        lastMsg + '!',
+        lastSig,
+        'Same signature, message changed by one character — the challenge re-derivation should now disagree (though with only 16 toy challenges, it collides about 1 time in 16).',
+        true,
+      )
     }
   })
   tamperZBtn.addEventListener('click', () => {
