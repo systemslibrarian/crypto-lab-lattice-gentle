@@ -29,6 +29,17 @@
 }
 
 :root[data-theme='light'] {
+  /* The light theme originally overrode --accent-ink but NOT --accent, so
+     every non-text use of the accent kept the dark theme's #35b0d6: the focus
+     ring (2.36:1 on the page background), the hover and aria-pressed button
+     borders (2.21:1), the range thumbs via accent-color, the CVP "rounded
+     decode" dot (2.21:1) and the toy-Kyber bit-1 coefficient dots (2.52:1) —
+     all under the 3:1 WCAG 1.4.11 asks of a control boundary, a focus
+     indicator or a meaningful graphic. It also made the legend lie: the swatch
+     text used --accent-ink while the dot it described used --accent, so they
+     were different colours in this theme. #0b6e91 measures 5.38:1 on --bg,
+     5.04:1 on --bg-inset and 5.75:1 on --bg-panel. */
+  --accent: #0b6e91;
   --bg: #f4f8fb;
   --bg-panel: #ffffff;
   --bg-inset: #eaf1f7;
@@ -188,7 +199,16 @@ body {
   min-height: 44px;
   background-color: var(--bg-inset);
   color: var(--text);
-  border: 1px solid var(--border);
+  /* --control-border, not --border. The palette defines a boundary token that
+     clears 3:1 (WCAG 1.4.11) and it was applied to exactly two selectors —
+     `input[type=number]` and `input[type=text]` — which are exactly the two
+     the repo's own border-contrast.spec.ts queries. Every <button> on the
+     page, which is most of its controls, kept --border instead: measured
+     1.60:1 against the button's own fill in dark and 1.48:1 in light, with the
+     fill itself 1.05:1 / 1.14:1 against the card behind it, so nothing about a
+     button cleared 3:1 in either theme. --control-border measures 3.96:1 /
+     3.21:1 on the same fill. */
+  border: 1px solid var(--control-border);
   border-radius: 8px;
   padding: 0.42rem 0.8rem;
   font-size: 0.92rem;
@@ -325,6 +345,18 @@ body {
 .reduce-panel {
   flex: 1 1 300px;
   min-width: min(100%, 280px);
+  /* WCAG 1.4.10. Without this cap the flex item is sized to its content's
+     max-content width and escapes the viewport — 392px inside a 324px flex
+     line at 380px, pushing the document to 421px. The `min-width` above does
+     NOT prevent it (setting it to 0 changes nothing) and neither does
+     `overflow-x: auto` on the `.reduce-matrix` child, because the scroller is
+     not itself the flex item. Only a definite cap on the item does.
+     It shows up only after Exhibit 3's "big numbers" preset is selected AND
+     stepped, since the 5-digit `white-space: nowrap` matrix rows are what make
+     the max-content width large — the shipped default preset never triggers
+     it, which is why the previous overflow test, run at four widths on the
+     default state, was green. */
+  max-width: 100%;
 }
 
 .lv-gridline {

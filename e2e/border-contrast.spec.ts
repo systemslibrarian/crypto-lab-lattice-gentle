@@ -21,24 +21,76 @@ function contrast(a: Rgb, b: Rgb): number {
   return (lighter + 0.05) / (darker + 0.05)
 }
 
+/**
+ * WCAG 1.4.11 for control boundaries.
+ *
+ * This used to query `input[type=number], input[type=text]` and nothing else —
+ * which happened to be the only two selectors `--control-border` was applied
+ * to. So it asserted 3:1 over exactly the rules that already kept it, and was
+ * green while every <button> on the page — the great majority of its controls —
+ * drew its boundary in `--border` at 1.60:1 (dark) and 1.48:1 (light). The
+ * selector below is now every interactive control, so the token cannot drift
+ * back off one of them unnoticed.
+ *
+ * Disabled controls are excluded: SC 1.4.11 exempts inactive components, and
+ * `#app button:disabled` deliberately reverts to `--border` at `opacity: .55`.
+ */
 for (const theme of ['dark', 'light'] as const) {
-  test(`editable input boundaries retain 3:1 contrast in ${theme} theme`, async ({ page }) => {
+  test(`control boundaries retain 3:1 contrast in ${theme} theme`, async ({ page }) => {
     await page.goto('.')
     await page.evaluate((value) => {
       document.documentElement.dataset.theme = value
     }, theme)
 
-    const inputs = page.locator("#app input[type='number'], #app input[type='text']")
-    expect(await inputs.count()).toBeGreaterThan(0)
-    const styles = await inputs.evaluateAll((elements) =>
-      elements.map((element) => {
-        const style = getComputedStyle(element)
-        return [style.borderTopColor, style.backgroundColor] as const
-      }),
+    const controls = page.locator("#app button, #app input[type='number'], #app input[type='text']")
+    expect(await controls.count()).toBeGreaterThan(20)
+    const styles = await controls.evaluateAll((elements) =>
+      elements
+        .filter((element) => !(element as HTMLButtonElement).disabled)
+        .map((element) => {
+          const style = getComputedStyle(element)
+          return [
+            `${element.tagName.toLowerCase()}${element.id ? '#' + element.id : ''}`,
+            style.borderTopColor,
+            style.backgroundColor,
+          ] as const
+        }),
     )
 
-    for (const [border, fill] of styles) {
-      expect(contrast(rgb(border), rgb(fill))).toBeGreaterThanOrEqual(3)
+    for (const [who, border, fill] of styles) {
+      expect(contrast(rgb(border), rgb(fill)), `${who} boundary vs its own fill`).toBeGreaterThanOrEqual(3)
     }
+  })
+
+  test(`hovered and pressed button boundaries retain 3:1 contrast in ${theme} theme`, async ({
+    page,
+  }) => {
+    // The hover and aria-pressed borders both take `--accent`, which the light
+    // theme did not override — so both dropped to 2.21:1 there while the same
+    // rules read 7.07:1 in dark. A resting-state-only check cannot see that.
+    await page.goto('.')
+    await page.evaluate((value) => {
+      document.documentElement.dataset.theme = value
+    }, theme)
+
+    const pair = await page.evaluate(() => {
+      const probe = document.createElement('button')
+      probe.textContent = 'probe'
+      document.querySelector('#app')!.append(probe)
+      const read = (): [string, string] => {
+        const cs = getComputedStyle(probe)
+        return [cs.borderTopColor, cs.backgroundColor]
+      }
+      probe.style.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--accent')
+      const hover = read()
+      probe.setAttribute('aria-pressed', 'true')
+      probe.style.borderColor = ''
+      const pressed = read()
+      probe.remove()
+      return { hover, pressed }
+    })
+
+    expect(contrast(rgb(pair.hover[0]), rgb(pair.hover[1])), 'hover border').toBeGreaterThanOrEqual(3)
+    expect(contrast(rgb(pair.pressed[0]), rgb(pair.pressed[1])), 'pressed border').toBeGreaterThanOrEqual(3)
   })
 }

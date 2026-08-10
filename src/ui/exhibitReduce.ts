@@ -130,7 +130,13 @@ export function mountExhibitReduce(root: HTMLElement): void {
 
   const view = new LatticeView({ extent: 8, sizePx: 340 }, 'Basis vectors during Gauss reduction')
   const intro = h('p', { class: 'panel-note' })
-  const log = h('ol', { class: 'reduce-log', role: 'list' })
+  // No explicit role: an <ol> already exposes `list`, and the redundant
+  // `role="list"` made axe apply `aria-required-children` to it — which fails
+  // whenever the log is empty. It is empty at first paint and after every
+  // Reset, so the page shipped an ARIA violation in its own default state.
+  // It is also hidden while empty, so a screen reader is not handed an
+  // announced-but-contentless list.
+  const log = h('ol', { class: 'reduce-log' })
   const matrix = h('div', { class: 'reduce-matrix', role: 'region', 'aria-label': 'Current basis', tabindex: '0' })
   const status = h('p', { class: 'panel-status', role: 'status' })
 
@@ -185,9 +191,10 @@ export function mountExhibitReduce(root: HTMLElement): void {
   function update(): void {
     intro.textContent = preset.intro
     // log lines revealed so far
+    log.hidden = idx < 0
     log.replaceChildren(
       ...frames.slice(0, idx + 1).map((f, i) => {
-        const li = h('li', { role: 'listitem', class: `reduce-line reduce-${f.kind}` })
+        const li = h('li', { class: `reduce-line reduce-${f.kind}` })
         const icon = f.kind === 'check-ok' ? '✓ ' : f.kind === 'check-fail' ? '✗ ' : f.kind === 'done' ? '★ ' : ''
         li.append(h('span', { text: `${icon}${f.text}` }))
         if (i === idx) li.classList.add('reduce-current')

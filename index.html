@@ -201,13 +201,18 @@
           conjectured hardness of short-vector problems in high dimension, connected to MLWE and MSIS by security
           reductions.
         </p>
-        <p class="concept-map" aria-label="How the exhibits build on each other">
+        <!-- role="group", not a bare <p>: aria-label is PROHIBITED on an
+             element whose role is `paragraph`, so the label below was being
+             silently discarded and no assistive technology ever heard it. axe
+             files that under `incomplete`, never `violations`, so a gate that
+             asserts only on violations cannot see it. -->
+        <div class="concept-map" role="group" aria-label="How the exhibits build on each other">
           <span class="map-step">① – ③ geometry: bases, SVP, CVP, LLL</span>
           <span class="map-arrow" aria-hidden="true">→</span>
           <span class="map-step">④ the same gap over F<sub>q</sub>: LWE &amp; SIS</span>
           <span class="map-arrow" aria-hidden="true">→</span>
           <span class="map-step">⑤ module versions: MLWE &amp; MSIS ⇒ ML-KEM &amp; ML-DSA</span>
-        </p>
+        </div>
         <p class="what-this-isnt">
           ⚠ Not production crypto — a teaching demo with deliberately tiny parameters. It shows why the problems are
           believed hard; it does not prove hardness, and 2D lattices themselves are <em>easy</em> (Exhibit 3 solves
