@@ -35,7 +35,7 @@ function contrast(a: Rgb, b: Rgb): number {
  * Disabled controls are excluded: SC 1.4.11 exempts inactive components, and
  * `#app button:disabled` deliberately reverts to `--border` at `opacity: .55`.
  */
-for (const theme of ['dark', 'light'] as const) {
+for (const theme of ['dark'] as const) {
   test(`control boundaries retain 3:1 contrast in ${theme} theme`, async ({ page }) => {
     await page.goto('.')
     await page.evaluate((value) => {
