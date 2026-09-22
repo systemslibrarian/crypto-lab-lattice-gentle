@@ -49,8 +49,8 @@ export function mountGuide(barRoot: HTMLElement, navRoot: HTMLElement): void {
   })()
 
   // --- mode toggle ---
-  const guidedBtn = h('button', { type: 'button', text: 'Guided' })
-  const referenceBtn = h('button', { type: 'button', text: 'Reference' })
+  const guidedBtn = h('button', { id: 'mode-guided', type: 'button', text: 'Guided' })
+  const referenceBtn = h('button', { id: 'mode-reference', type: 'button', text: 'Reference' })
   guidedBtn.addEventListener('click', () => setMode('guided'))
   referenceBtn.addEventListener('click', () => setMode('reference'))
   const modeGroup = h(
@@ -66,7 +66,7 @@ export function mountGuide(barRoot: HTMLElement, navRoot: HTMLElement): void {
 
   // --- progress rail ---
   const railBtns: HTMLButtonElement[] = STEPS.map((s, i) => {
-    const b = h('button', { type: 'button', text: s.label })
+    const b = h('button', { id: `rail-step-${i + 1}`, type: 'button', text: s.label })
     b.addEventListener('click', () => {
       if (mode === 'guided') goToStep(i, true)
       else sections.get(s.sections[0])?.scrollIntoView()
