@@ -47,9 +47,11 @@ Drag basis vectors and the CVP target, step the reductions, type LWE/SIS candida
 
 ## Real-World Usage
 
-- **ML-KEM (FIPS 203)** — key establishment in TLS (Chrome/Cloudflare X25519MLKEM768), Signal's PQXDH, Apple iMessage PQ3, AWS KMS hybrid TLS.
+- **ML-KEM (FIPS 203)** — key establishment in TLS (Chrome/Cloudflare X25519MLKEM768) and AWS KMS hybrid TLS. Signal's [PQXDH](https://signal.org/docs/specifications/pqxdh/) and Apple's [iMessage PQ3](https://security.apple.com/blog/imessage-pq3/) are the same lattice lineage, but their published designs name pre-standard CRYSTALS-Kyber — PQXDH gives CRYSTALS-KYBER-1024 as its example, PQ3 uses Kyber-1024 public keys and Kyber-768 for rekeying — not final FIPS 203 ML-KEM.
 - **ML-DSA (FIPS 204)** — the lattice signature of NSA's CNSA 2.0 suite; certificate and firmware signing migrations in progress.
 - Both stand on MLWE/MSIS — the module versions of the LWE and SIS problems in Exhibit 4, which are the F_q form of the SVP/CVP geometry in Exhibits 1–3.
+
+**Standards reviewed 15 November 2026:** the PQXDH specification (Revision 3, last updated 2024-01-23) defines `pqkem` with the example "Crystals-Kyber-1024" and never mentions ML-KEM; Apple's PQ3 announcement (21 February 2024) specifies "a post-quantum Kyber-1024 key encapsulation public key" and a rekeying KEM "instantiated with Kyber-768". Both protocols were previously listed above as ML-KEM deployments.
 
 ## How to Run Locally
 
