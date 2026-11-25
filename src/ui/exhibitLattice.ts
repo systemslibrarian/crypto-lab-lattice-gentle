@@ -142,7 +142,9 @@ export function mountExhibitLattice(root: HTMLElement): void {
     if (degenerate) {
       scene = { lattice, basis, parallelogram: false }
       statusFrag = [
-        badge('bad', 'degenerate: b₁ and b₂ are parallel (det = 0) — they only generate a line, not a lattice'),
+        badge('bad', basis.every(v => v[0] === 0 && v[1] === 0)
+          ? 'degenerate: both vectors are zero and generate only the origin (rank 0)'
+          : 'degenerate: the vectors generate a rank-1 lattice on a line (det = 0)'),
       ]
     } else {
       scene = { lattice, basis, parallelogram: true, overlayBasisLattice: !same }
@@ -161,7 +163,7 @@ export function mountExhibitLattice(root: HTMLElement): void {
     // CVP by rounding, against whatever basis is on screen
     if (!degenerate) {
       const r = babaiRound(basis, t)
-      const truth = closestVector(lattice, t)
+      const truth = closestVector(basis, t)
       const errSq = normSq(sub(t, r.point))
       const [c1, c2] = r.realCoords
       const roundedHitsTruth = errSq === truth.distSq
@@ -173,7 +175,7 @@ export function mountExhibitLattice(root: HTMLElement): void {
         h(
           'span',
           {},
-          `t = (${t[0]}, ${t[1]}) = ${c1.toFixed(2)}·b₁ + ${c2.toFixed(2)}·b₂ → round → ${r.coeffs[0]}·b₁ + ${r.coeffs[1]}·b₂ = (${r.point[0]}, ${r.point[1]}), error √${errSq} ≈ ${Math.sqrt(errSq).toFixed(2)}. True closest point: (${truth.v[0]}, ${truth.v[1]}) at distance √${truth.distSq} ≈ ${Math.sqrt(truth.distSq).toFixed(2)} (exhaustive search). `,
+          `t = (${t[0]}, ${t[1]}) = ${c1.toFixed(2)}·b₁ + ${c2.toFixed(2)}·b₂ → round → ${r.coeffs[0]}·b₁ + ${r.coeffs[1]}·b₂ = (${r.point[0]}, ${r.point[1]}), error √${errSq} ≈ ${Math.sqrt(errSq).toFixed(2)}. True closest point in the edited basis: (${truth.v[0]}, ${truth.v[1]}) at distance √${truth.distSq} ≈ ${Math.sqrt(truth.distSq).toFixed(2)} (exhaustive search). `,
         ),
         roundedHitsTruth
           ? badge('ok', 'rounding found a closest vector')

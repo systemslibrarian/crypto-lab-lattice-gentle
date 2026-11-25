@@ -222,3 +222,18 @@ describe('hero hook — the first-viewport experiment stays truthful', () => {
     expect(normSq(sub(t, bad.point))).toBe(85) // same lattice, ~3x the miss
   })
 })
+
+describe('closest vectors in edited bases', () => {
+  it('returns the target even when its coefficients exceed the old window', () => {
+    const basis: Basis2 = [[14, 13], [13, 12]]
+    const result = closestVector(basis, [14, -14])
+    expect(result.v).toEqual([14, -14])
+    expect(result.distSq).toBe(0)
+    expect(result.coeffs).toEqual([-350, 378])
+  })
+
+  it('finds a better point when coordinate rounding misses', () => {
+    const result = closestVector([[5, 3], [2, 7]], [5, 6])
+    expect(result.distSq).toBe(9)
+  })
+})

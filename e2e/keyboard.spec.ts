@@ -78,6 +78,21 @@ test('Exhibit 1 basis editing works keyboard-only', async ({ page }) => {
   ).toBeVisible()
 })
 
+test('rounding and closest-point results refer to the lattice the student entered', async ({ page }) => {
+  await page.goto('.')
+  const ids = ['b1x', 'b1y', 'b2x', 'b2y', 'tx', 'ty']
+  for (const values of [[1, 0, 0, 1, 5, 6], [14, 13, 13, 12, 14, -14]]) {
+    for (const [index, field] of ids.entries()) {
+      const input = page.locator('#ex1-' + field)
+      await input.fill(String(values[index]))
+      await input.press('Tab')
+    }
+    const output = page.locator('.lattice-controls .panel-status').nth(1)
+    await expect(output).toContainText('distance √0')
+    await expect(output).toContainText('rounding found a closest vector')
+  }
+})
+
 test('forced colors: interactions still expose text-visible state', async ({ page }) => {
   await page.emulateMedia({ forcedColors: 'active' })
   await page.goto('.')
