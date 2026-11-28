@@ -106,7 +106,7 @@ function lwePanel(): HTMLElement {
   const panel = h(
     'div',
     { class: 'subpanel' },
-    h('h3', { text: 'LWE — noisy equations (Example 4.3: m=5, n=3, q=47, B=2)' }),
+    h('h3', { text: 'LWE — noisy equations (notes v1.1, Example 4.3: m=5, n=3, q=47, B=2)' }),
     h(
       'p',
       { class: 'panel-note' },
@@ -125,7 +125,7 @@ function lwePanel(): HTMLElement {
       h(
         'p',
         {},
-        'The set {A·s mod q : all s}, lifted by multiples of q, is a lattice in Z⁵ (a "q-ary" lattice). b sits within distance ‖e‖ of the lattice point A·s. Recovering s is exactly the Closest Vector Problem from Exhibit 1 — in 5 dimensions here, in hundreds of dimensions in real schemes, where no good basis is known and rounding fails. That is the approx-CVP/BDD formulation of LWE (§4 of the notes).',
+        'The points A·s + 47k for integer vectors k form a lattice in five dimensions. The received vector b lies within the coordinate error bound of a lattice point. All three published candidates satisfy that bound. A promise of unique decoding would require additional conditions on the distance and lattice.',
       ),
     ),
   )
@@ -209,7 +209,7 @@ function sisPanel(): HTMLElement {
     h(
       'p',
       { class: 'panel-note' },
-      'Find a nonzero z with entries in [−3, 3] such that A·z ≡ 0 (mod 13). Solutions to A·z ≡ 0 are easy to describe — they form a lattice — but among the 169 candidate combinations only four are short enough. Shortness is the entire difficulty.',
+      'Find a nonzero z with entries in [−3, 3] such that A·z ≡ 0 (mod 13). The matrix has 169 kernel elements modulo 13, including zero. The coordinate box contains 7⁵ = 16,807 integer vectors. Four nonzero vectors in that box satisfy the equation.',
     ),
     matrixTable(inst.A, 'A ∈ Z₁₃^{3×5}'),
     fields,
@@ -223,7 +223,7 @@ function sisPanel(): HTMLElement {
       h(
         'p',
         {},
-        'The set {z ∈ Z⁵ : A·z ≡ 0 (mod q)} is a lattice, and a SIS solution is a short vector in it — the Shortest Vector Problem from Exhibit 2, in higher dimension. Example 3.3 of the notes builds a hash H(z) = A·z from this: a collision H(z₁) = H(z₂) gives the short kernel vector z₁ − z₂, so collision resistance is exactly SIS hardness. Dilithium\'s unforgeability reduces to the module version, MSIS (Exhibit 5).',
+        'The integer vectors z satisfying A·z ≡ 0 (mod 13) form a lattice. SIS asks for any nonzero vector within the stated bound. SVP asks for a shortest nonzero vector. In the binary-input hash example, two different inputs with the same hash give a nonzero kernel vector with coordinates in {−1, 0, 1}.',
       ),
     ),
   )

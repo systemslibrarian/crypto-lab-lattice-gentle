@@ -289,15 +289,14 @@
       <section class="card" id="exhibit-4" aria-labelledby="ex4-h">
         <h2 id="ex4-h">Exhibit 4 · The same gap, spoken in F<sub>q</sub>: LWE and SIS</h2>
         <p>
-          Cryptography can't ship pictures of dots; it ships matrices modulo q. Learning With Errors hides a secret
-          behind <em>noisy</em> linear equations; Short Integer Solutions asks for a <em>short</em> kernel vector. Both
-          are the geometry you just played with, re-coordinatized: LWE is CVP and SIS is SVP, in a lattice built from
-          the matrix A (an exact formulation, &sect;3&ndash;4 of the notes, not an analogy). Type candidates and both
-          sides of each equation are computed for real. (Examples 4.3 and 3.2 of
-          <a href="https://eprint.iacr.org/2026/1098">the notes</a>.)
+          Learning With Errors gives noisy modular equations. In this example, several different secrets give
+          residuals within the stated bound. Short Integer Solutions asks for any nonzero vector within a
+          specified bound in the modular kernel. A shortest-vector problem asks for a vector of minimum length.
+          Try a candidate for each problem below. The example numbers (4.3 and 3.2) refer to version 1.1 of
+          <a href="https://eprint.iacr.org/2026/1098">Menezes’ notes</a>.
         </p>
         <div id="exhibit-lwe-sis" class="two-col"></div>
-        <p class="bridge">Next: swap the matrix entries for small polynomials and LWE/SIS become MLWE/MSIS — the exact problems under Kyber and Dilithium.</p>
+        <p class="bridge">Next: swap the matrix entries for small polynomials and LWE/SIS become MLWE/MSIS — the module problems studied in the next exhibit.</p>
       </section>
 
       <section class="card" id="exhibit-5" aria-labelledby="ex5-h">
