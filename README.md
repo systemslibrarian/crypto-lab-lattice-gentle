@@ -21,7 +21,7 @@ Deep links open any exhibit directly (`#exhibit-1` … `#exhibit-5`, `#exit-chec
 1. **One lattice, many bases** — drag the basis vectors of the lattice from Example 2.24 of the notes (or type coordinates); exact integer arithmetic proves whether your basis still generates the same lattice, and Babai rounding decodes a draggable target point — the Closest Vector Problem, with the true closest vector found by exhaustive search for comparison. Presets replay the notes' good/bad basis pairs (Ex 2.7/2.8 and 2.24).
 2. **Good basis, bad basis** — the Shortest Vector Problem: toggle between the two bases of Examples 2.7/2.8 and watch the highlighted shortest vector (found by brute force, never asserted) stay put while its visibility collapses.
 3. **Gauss and LLL, step by step** — a real instrumented reduction: Gauss's algorithm on Examples 9.11 and 9.12 (watch ‖v‖² fall from 1.3×10¹⁰ to 6×10⁵), and full LLL on the 4D basis of Example 9.21 — every size-reduction, every Lovász check, every swap, replayed from the actual trace.
-4. **LWE and SIS over F_q** — the notes' Example 4.3 (LWE: m=5, n=3, q=47) and Example 3.2 (SIS: n=3, m=5, q=13) verbatim. Type candidate solutions; both sides of every equation are computed and compared element by element, with independent accept/reject conditions reported independently.
+4. **LWE and SIS over F_q** — the notes’ v1.1 Example 4.3 (LWE: m=5, n=3, q=47) and Example 3.2 (SIS: n=3, m=5, q=13). All three published LWE candidates meet the error bound. In the SIS example, the modular kernel has 169 elements and four nonzero vectors meet the coordinate bound. Type candidate solutions; both sides of every equation are computed and compared element by element, with independent accept/reject conditions reported independently.
 5. **toy-Kyber and toy-Dilithium** — the slides' worked examples reproduced digit for digit, plus seeded fresh modes: encrypt/decrypt with a live noise-budget meter (q/4 is a sufficient correctness bound in the lesson; compare the actual decoded bits as the error changes), a Fujisaki–Okamoto KEM whose decapsulation models FIPS 203 implicit rejection (tampered ciphertexts silently yield the fallback key), and Dilithium signing with visible rejection sampling and three tamper controls whose verdicts come from the toy verifier. Each panel opens with a table of major differences from FIPS 203 or FIPS 204.
 
 ## When to Use It
@@ -49,7 +49,7 @@ Drag basis vectors and the CVP target, step the reductions, type LWE/SIS candida
 
 - **ML-KEM (FIPS 203)** — key establishment in TLS (Chrome/Cloudflare X25519MLKEM768) and AWS KMS hybrid TLS. Signal's [PQXDH](https://signal.org/docs/specifications/pqxdh/) and Apple's [iMessage PQ3](https://security.apple.com/blog/imessage-pq3/) are the same lattice lineage, but their published designs name pre-standard CRYSTALS-Kyber — PQXDH gives CRYSTALS-KYBER-1024 as its example, PQ3 uses Kyber-1024 public keys and Kyber-768 for rekeying — not final FIPS 203 ML-KEM.
 - **ML-DSA (FIPS 204)** — the lattice signature of NSA's CNSA 2.0 suite; certificate and firmware signing migrations in progress.
-- Both stand on MLWE/MSIS — the module versions of the LWE and SIS problems in Exhibit 4, which are the F_q form of the SVP/CVP geometry in Exhibits 1–3.
+- Both stand on MLWE/MSIS — the module versions of the LWE and SIS problems in Exhibit 4, which connect to the geometry in Exhibits 1–3 through q-ary lattices. SIS asks for any nonzero vector within its bound. The tiny LWE panel admits several nearby solutions. [Worked classroom examples](https://crypto-lab.systemslibrarian.dev/learn/student-corrections/#lattice-gentle)
 
 **Standards reviewed 15 November 2026:** the PQXDH specification (Revision 3, last updated 2024-01-23) defines `pqkem` with the example "Crystals-Kyber-1024" and never mentions ML-KEM; Apple's PQ3 announcement (21 February 2024) specifies "a post-quantum Kyber-1024 key encapsulation public key" and a rekeying KEM "instantiated with Kyber-768". Both protocols were previously listed above as ML-KEM deployments.
 
@@ -58,7 +58,7 @@ Drag basis vectors and the CVP target, step the reductions, type LWE/SIS candida
 ```bash
 npm ci
 npm run dev        # dev server
-npm test           # 57 unit tests incl. 32 worked-example KATs
+npm test           # unit tests including worked-example checks
 npm run build      # typecheck + production build
 npm run test:a11y  # axe (both themes + guided shell), keyboard-only workflows,
                    # forced-colors/reduced-motion, overflow + first-viewport (port 4390)
